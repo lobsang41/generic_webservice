@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  postgres_host: "postgres"
+  postgres_port: "5432"
+  postgres_db: "enterprise_db"
+  redis_host: "redis"
+  redis_port: "6379"
+  rabbitmq_host: "rabbitmq"
+  rabbitmq_port: "5672"
+  api_version: "v1"
+  cors_origin: "*"
+  log_level: "info"

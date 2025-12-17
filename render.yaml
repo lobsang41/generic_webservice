@@ -1,0 +1,50 @@
+{
+  "$schema": "https://render.com/schema/v1",
+  "services": [
+    {
+      "type": "web",
+      "name": "enterprise-api",
+      "env": "node",
+      "region": "oregon",
+      "plan": "free",
+      "buildCommand": "npm install && npm run build",
+      "startCommand": "npm start",
+      "healthCheckPath": "/health",
+      "envVars": [
+        {
+          "key": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "key": "PORT",
+          "value": "3000"
+        },
+        {
+          "key": "JWT_SECRET",
+          "generateValue": true
+        },
+        {
+          "key": "JWT_REFRESH_SECRET",
+          "generateValue": true
+        },
+        {
+          "key": "ENCRYPTION_KEY",
+          "generateValue": true
+        }
+      ]
+    }
+  ],
+  "databases": [
+    {
+      "name": "enterprise-postgres",
+      "plan": "free",
+      "databaseName": "enterprise_system_db",
+      "user": "enterprise"
+    },
+    {
+      "name": "enterprise-redis",
+      "plan": "free",
+      "maxmemoryPolicy": "allkeys-lru"
+    }
+  ]
+}

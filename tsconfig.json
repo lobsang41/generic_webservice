@@ -1,0 +1,75 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "commonjs",
+        "lib": [
+            "ES2022"
+        ],
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "moduleResolution": "node",
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "allowSyntheticDefaultImports": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "baseUrl": ".",
+        "paths": {
+            "@shared/*": [
+                "src/shared/*"
+            ],
+            "@services/*": [
+                "src/services/*"
+            ],
+            "@config/*": [
+                "src/shared/config/*"
+            ],
+            "@utils/*": [
+                "src/shared/utils/*"
+            ],
+            "@middleware/*": [
+                "src/shared/middleware/*"
+            ],
+            "@database/*": [
+                "src/shared/database/*"
+            ],
+            "@auth/*": [
+                "src/shared/auth/*"
+            ],
+            "@cache/*": [
+                "src/shared/cache/*"
+            ],
+            "@messaging/*": [
+                "src/shared/messaging/*"
+            ],
+            "@monitoring/*": [
+                "src/shared/monitoring/*"
+            ],
+            "@cloud/*": [
+                "src/shared/cloud/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "**/*.test.ts",
+        "**/*.spec.ts"
+    ]
+}
