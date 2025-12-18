@@ -1,104 +1,109 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:16-alpine
-    container_name: enterprise_postgres
-    environment:
-      POSTGRES_DB: enterprise_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./src/shared/database/migrations:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - enterprise-network
+  # DESACTIVADO: Usando solo MySQL por ahora
+  # Para reactivar: descomentar este bloque y las variables POSTGRES_* en api-gateway
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: enterprise_postgres
+  #   environment:
+  #     POSTGRES_DB: enterprise_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./src/shared/database/migrations:/docker-entrypoint-initdb.d
+  #   healthcheck:
+  #     test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - enterprise-network
 
-  # MySQL Database
-  mysql:
-    image: mysql:8.0
-    container_name: enterprise_mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: enterprise_app_db
-      MYSQL_USER: mysql
-      MYSQL_PASSWORD: mysql
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./src/shared/database/migrations/001_application_schema.sql:/docker-entrypoint-initdb.d/001_application_schema.sql
-    command: --default-authentication-plugin=mysql_native_password
-    healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "mysql", "-pmysql" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - enterprise-network
+  # DESACTIVADO: Usando MySQL remoto (kittyservices.servicesinc.cloud)
+  # Para reactivar MySQL local: descomentar este bloque
+  # mysql:
+  #   image: mysql:8.0
+  #   container_name: enterprise_mysql
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: root
+  #     MYSQL_DATABASE: enterprise_app_db
+  #     MYSQL_USER: mysql
+  #     MYSQL_PASSWORD: mysql
+  #   ports:
+  #     - "3306:3306"
+  #   volumes:
+  #     - mysql_data:/var/lib/mysql
+  #     - ./src/shared/database/migrations/001_application_schema.sql:/docker-entrypoint-initdb.d/001_application_schema.sql
+  #   command: --default-authentication-plugin=mysql_native_password
+  #   healthcheck:
+  #     test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "mysql", "-pmysql" ]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - enterprise-network
 
-  # MongoDB
-  mongodb:
-    image: mongo:7
-    container_name: enterprise_mongodb
-    environment:
-      MONGO_INITDB_DATABASE: enterprise_db
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - enterprise-network
+  # DESACTIVADO: Usando solo MySQL por ahora
+  # Para reactivar: descomentar este bloque y la variable MONGO_URI en api-gateway
+  # mongodb:
+  #   image: mongo:7
+  #   container_name: enterprise_mongodb
+  #   environment:
+  #     MONGO_INITDB_DATABASE: enterprise_db
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #   healthcheck:
+  #     test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - enterprise-network
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: enterprise_redis
-    command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    networks:
-      - enterprise-network
+  # DESACTIVADO: Usando node-cache en memoria por ahora
+  # Para reactivar: descomentar este bloque y las variables REDIS_* en api-gateway
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: enterprise_redis
+  #   command: redis-server --appendonly yes
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   healthcheck:
+  #     test: [ "CMD", "redis-cli", "ping" ]
+  #     interval: 10s
+  #     timeout: 3s
+  #     retries: 5
+  #   networks:
+  #     - enterprise-network
 
-  # RabbitMQ Message Queue
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: enterprise_rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    ports:
-      - "5672:5672" # AMQP port
-      - "15672:15672" # Management UI
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - enterprise-network
+  # DESACTIVADO: Sin mensajería por ahora
+  # Para reactivar: descomentar este bloque y la variable RABBITMQ_URL en api-gateway
+  # rabbitmq:
+  #   image: rabbitmq:3-management-alpine
+  #   container_name: enterprise_rabbitmq
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: guest
+  #     RABBITMQ_DEFAULT_PASS: guest
+  #   ports:
+  #     - "5672:5672" # AMQP port
+  #     - "15672:15672" # Management UI
+  #   volumes:
+  #     - rabbitmq_data:/var/lib/rabbitmq
+  #   healthcheck:
+  #     test: rabbitmq-diagnostics -q ping
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - enterprise-network
 
   # Prometheus Monitoring
   prometheus:
@@ -142,20 +147,28 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: enterprise_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      MYSQL_HOST: mysql
+      # DESACTIVADO: PostgreSQL comentado
+      # POSTGRES_HOST: postgres
+      # POSTGRES_PORT: 5432
+      # POSTGRES_DB: enterprise_db
+      # POSTGRES_USER: postgres
+      # POSTGRES_PASSWORD: postgres
+      
+      # MySQL - Servidor Remoto
+      MYSQL_HOST: kittyservices.servicesinc.cloud
       MYSQL_PORT: 3306
-      MYSQL_DB: enterprise_app_db
-      MYSQL_USER: mysql
-      MYSQL_PASSWORD: mysql
-      MONGO_URI: mongodb://mongodb:27017/enterprise_db
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      RABBITMQ_URL: amqp://rabbitmq:5672
+      MYSQL_DB: webservices  # CAMBIAR por el nombre de tu base de datos
+      MYSQL_USER: adminkitty  # CAMBIAR por tu usuario
+      MYSQL_PASSWORD: gaqpad-doSzod-3ruzje  # CAMBIAR por tu contraseña
+      
+      # DESACTIVADO: MongoDB comentado
+      # MONGO_URI: mongodb://mongodb:27017/enterprise_db
+      # DESACTIVADO: Redis comentado
+      # REDIS_HOST: redis
+      # REDIS_PORT: 6379
+      # DESACTIVADO: RabbitMQ comentado
+      # RABBITMQ_URL: amqp://rabbitmq:5672
+      
       JWT_SECRET: dev-jwt-secret-change-in-production
       JWT_REFRESH_SECRET: dev-refresh-secret-change-in-production
       ENCRYPTION_KEY: dev-encryption-key-32chars!!!
@@ -164,20 +177,13 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-    depends_on:
-      postgres:
-        condition: service_healthy
-      mysql:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+    # DESACTIVADO: No hay servicios locales de los que depender (MySQL es remoto)
+    # depends_on:
+    #   mysql:
+    #     condition: service_healthy
     networks:
       - enterprise-network
-    command: npm run dev
+    command: npm start
 
 volumes:
   postgres_data:

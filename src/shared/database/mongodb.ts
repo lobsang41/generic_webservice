@@ -1,3 +1,15 @@
+/**
+ * MONGODB DATABASE - DESACTIVADO TEMPORALMENTE
+ * 
+ * Usando solo MySQL por ahora.
+ * Para reactivar MongoDB:
+ * 1. Descomentar todo el código abajo
+ * 2. Descomentar servicio 'mongodb' en docker-compose.yml
+ * 3. Descomentar variables MONGODB_* en .env
+ * 4. Descomentar inicialización en src/services/api-gateway/index.ts
+ */
+
+/*
 import mongoose from 'mongoose';
 import { config } from '@config/index';
 import { logger } from '@utils/logger';
@@ -22,7 +34,6 @@ class MongoDatabase {
             this.isConnected = true;
             logger.info('MongoDB connected successfully');
 
-            // Handle connection events
             mongoose.connection.on('error', (err) => {
                 logger.error('MongoDB connection error', err);
             });
@@ -37,7 +48,6 @@ class MongoDatabase {
                 this.isConnected = true;
             });
 
-            // Graceful shutdown
             process.on('SIGINT', async () => {
                 await this.close();
                 process.exit(0);
@@ -50,10 +60,9 @@ class MongoDatabase {
 
     async healthCheck(): Promise<boolean> {
         try {
-            if (!this.isConnected) {
+            if (!this.isConnected || !mongoose.connection.db) {
                 return false;
             }
-            // Ping the database
             await mongoose.connection.db.admin().ping();
             return true;
         } catch (error) {
@@ -83,5 +92,18 @@ class MongoDatabase {
 export const mongoDB = new MongoDatabase();
 export default mongoDB;
 
-// Export mongoose for schema definitions
 export { mongoose };
+*/
+
+// Mock export para evitar errores de importación
+export const mongoDB = {
+    connect: async () => {},
+    healthCheck: async () => false,
+    close: async () => {},
+    getConnectionState: () => 'disconnected',
+    isReady: () => false,
+};
+export default mongoDB;
+
+// Mock mongoose export
+export const mongoose = null;

@@ -1,3 +1,15 @@
+/**
+ * REDIS CACHE - DESACTIVADO TEMPORALMENTE
+ * 
+ * Usando node-cache como reemplazo temporal.
+ * Para reactivar Redis:
+ * 1. Descomentar todo el código abajo
+ * 2. Descomentar servicio 'redis' en docker-compose.yml
+ * 3. Descomentar variables REDIS_* en .env
+ * 4. Cambiar imports en src/services/api-gateway/index.ts y src/shared/auth/jwt.ts
+ */
+
+/*
 import Redis from 'ioredis';
 import { config } from '@config/index';
 import { logger } from '@utils/logger';
@@ -81,7 +93,8 @@ class RedisCache {
     async del(key: string | string[]): Promise<number> {
         try {
             if (!this.client) return 0;
-            return await this.client.del(key);
+            const keys = Array.isArray(key) ? key : [key];
+            return await this.client.del(...keys);
         } catch (error) {
             logger.error(`Redis DEL failed for key: ${key}`, error);
             return 0;
@@ -191,3 +204,12 @@ class RedisCache {
 
 export const redisCache = new RedisCache();
 export default redisCache;
+*/
+
+// Mock export para evitar errores de importación
+// Usar nodeCache en su lugar
+import { nodeCache } from './nodeCache';
+
+// Type annotation explícita para evitar errores de propiedades privadas
+export const redisCache: typeof nodeCache = nodeCache;
+export default nodeCache;

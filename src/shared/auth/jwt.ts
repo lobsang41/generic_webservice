@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { config } from '@config/index';
-import redisCache from '@cache/redis';
+// DESACTIVADO: Usando node-cache en lugar de Redis
+// import redisCache from '@cache/redis';
+import nodeCache from '@cache/nodeCache';
 import { AuthenticationError } from '@middleware/errorHandler';
 
 export interface JWTPayload {
@@ -21,7 +23,7 @@ class JWTService {
             expiresIn: config.jwt.expiresIn,
             issuer: 'enterprise-api',
             audience: 'enterprise-client',
-        });
+        } as any);
     }
 
     generateRefreshToken(payload: JWTPayload): string {
@@ -29,7 +31,7 @@ class JWTService {
             expiresIn: config.jwt.refreshExpiresIn,
             issuer: 'enterprise-api',
             audience: 'enterprise-client',
-        });
+        } as any);
     }
 
     generateTokenPair(payload: JWTPayload): TokenPair {
@@ -84,7 +86,7 @@ class JWTService {
 
             const ttl = decoded.exp - Math.floor(Date.now() / 1000);
             if (ttl > 0) {
-                await redisCache.set(`blacklist:${token}`, '1', ttl);
+                await nodeCache.set(`blacklist:${token}`, '1', ttl);
             }
         } catch (error) {
             throw new Error('Failed to blacklist token');
@@ -92,7 +94,7 @@ class JWTService {
     }
 
     async isTokenBlacklisted(token: string): Promise<boolean> {
-        const result = await redisCache.exists(`blacklist:${token}`);
+        const result = await nodeCache.exists(`blacklist:${token}`);
         return result;
     }
 

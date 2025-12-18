@@ -1,11 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit, { RateLimitRequestHandler } from 'express-rate-limit';
-import RedisStore from 'rate-limit-redis';
-import redisCache from '@cache/redis';
+// DESACTIVADO: Usando almacenamiento en memoria por ahora
+// import RedisStore from 'rate-limit-redis';
+// import redisCache from '@cache/redis';
 import { config } from '@config/index';
 import { RateLimitError } from './errorHandler';
 
-// Create Redis store for rate limiting
+// DESACTIVADO: Redis store para rate limiting
+// Para reactivar: descomentar imports arriba y descomentar esta función
+/*
 const createRedisStore = () => {
     const client = redisCache.getClient();
     if (!client) {
@@ -18,6 +21,7 @@ const createRedisStore = () => {
         prefix: 'ratelimit:',
     });
 };
+*/
 
 // Standard rate limiter for public endpoints
 export const publicRateLimiter: RateLimitRequestHandler = rateLimit({
@@ -25,7 +29,8 @@ export const publicRateLimiter: RateLimitRequestHandler = rateLimit({
     max: config.rateLimit.maxRequests,
     standardHeaders: true,
     legacyHeaders: false,
-    store: createRedisStore(),
+    // DESACTIVADO: Usando almacenamiento en memoria en lugar de Redis
+    // store: createRedisStore(),
     message: 'Too many requests from this IP, please try again later',
     handler: (req: Request, res: Response) => {
         throw new RateLimitError('Rate limit exceeded');
@@ -42,7 +47,8 @@ export const authenticatedRateLimiter: RateLimitRequestHandler = rateLimit({
     max: config.rateLimit.maxRequestsAuth,
     standardHeaders: true,
     legacyHeaders: false,
-    store: createRedisStore(),
+    // DESACTIVADO: Usando almacenamiento en memoria en lugar de Redis
+    // store: createRedisStore(),
     message: 'Too many requests, please try again later',
     keyGenerator: (req: Request) => {
         // Use user ID if authenticated, otherwise IP
@@ -62,7 +68,8 @@ export const strictRateLimiter: RateLimitRequestHandler = rateLimit({
     max: 5,
     standardHeaders: true,
     legacyHeaders: false,
-    store: createRedisStore(),
+    // DESACTIVADO: Usando almacenamiento en memoria en lugar de Redis
+    // store: createRedisStore(),
     message: 'Too many attempts, please try again later',
     handler: (req: Request, res: Response) => {
         throw new RateLimitError('Too many attempts. Please try again in 15 minutes');
@@ -83,7 +90,8 @@ export const createCustomRateLimiter = (options: {
         max: options.max,
         standardHeaders: true,
         legacyHeaders: false,
-        store: createRedisStore(),
+        // DESACTIVADO: Usando almacenamiento en memoria en lugar de Redis
+        // store: createRedisStore(),
         message: options.message || 'Rate limit exceeded',
         handler: (req: Request, res: Response) => {
             throw new RateLimitError(options.message || 'Rate limit exceeded');

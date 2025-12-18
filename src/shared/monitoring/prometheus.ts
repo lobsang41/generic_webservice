@@ -1,6 +1,5 @@
 import client from 'prom-client';
 import { Request, Response } from 'express';
-import { config } from '@config/index';
 
 // Create a Registry
 export const register = new client.Registry();

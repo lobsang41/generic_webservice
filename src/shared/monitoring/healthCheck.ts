@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
-import postgresDB from '@database/postgres';
-import mongoDB from '@database/mongodb';
-import redisCache from '@cache/redis';
+// DESACTIVADO: Usando solo MySQL por ahora
+// import postgresDB from '@database/postgres';
+// import mongoDB from '@database/mongodb';
+import mysqlDB from '@database/mysql';
+import nodeCache from '@cache/nodeCache';
 
 export interface HealthCheckResult {
     status: 'healthy' | 'degraded' | 'unhealthy';
@@ -23,6 +25,8 @@ class HealthCheckService {
         this.startTime = Date.now();
     }
 
+    // DESACTIVADO: PostgreSQL
+    /*
     async checkPostgres(): Promise<{ status: 'up' | 'down'; latency?: number; message?: string }> {
         const start = Date.now();
         try {
@@ -39,7 +43,27 @@ class HealthCheckService {
             };
         }
     }
+    */
 
+    async checkMySQL(): Promise<{ status: 'up' | 'down'; latency?: number; message?: string }> {
+        const start = Date.now();
+        try {
+            const isHealthy = await mysqlDB.healthCheck();
+            const latency = Date.now() - start;
+            return {
+                status: isHealthy ? 'up' : 'down',
+                latency,
+            };
+        } catch (error) {
+            return {
+                status: 'down',
+                message: error instanceof Error ? error.message : 'Unknown error',
+            };
+        }
+    }
+
+    // DESACTIVADO: MongoDB
+    /*
     async checkMongoDB(): Promise<{ status: 'up' | 'down'; latency?: number; message?: string }> {
         const start = Date.now();
         try {
@@ -56,11 +80,12 @@ class HealthCheckService {
             };
         }
     }
+    */
 
-    async checkRedis(): Promise<{ status: 'up' | 'down'; latency?: number; message?: string }> {
+    async checkCache(): Promise<{ status: 'up' | 'down'; latency?: number; message?: string }> {
         const start = Date.now();
         try {
-            const isHealthy = await redisCache.healthCheck();
+            const isHealthy = await nodeCache.healthCheck();
             const latency = Date.now() - start;
             return {
                 status: isHealthy ? 'up' : 'down',
@@ -75,16 +100,14 @@ class HealthCheckService {
     }
 
     async getFullHealthCheck(): Promise<HealthCheckResult> {
-        const [postgres, mongodb, redis] = await Promise.all([
-            this.checkPostgres(),
-            this.checkMongoDB(),
-            this.checkRedis(),
+        const [mysql, cache] = await Promise.all([
+            this.checkMySQL(),
+            this.checkCache(),
         ]);
 
         const services = {
-            postgres,
-            mongodb,
-            redis,
+            mysql,
+            cache,
         };
 
         // Determine overall status
@@ -95,8 +118,8 @@ class HealthCheckService {
         if (allUp) {
             status = 'healthy';
         } else if (anyDown) {
-            // If critical services are down, mark as unhealthy
-            if (postgres.status === 'down') {
+            // If MySQL is down, mark as unhealthy
+            if (mysql.status === 'down') {
                 status = 'unhealthy';
             } else {
                 status = 'degraded';
@@ -120,9 +143,9 @@ class HealthCheckService {
 
     // Readiness check - can the service handle requests?
     async isReady(): Promise<boolean> {
-        const postgres = await this.checkPostgres();
-        // Service is ready if critical dependencies are up
-        return postgres.status === 'up';
+        const mysql = await this.checkMySQL();
+        // Service is ready if MySQL is up
+        return mysql.status === 'up';
     }
 
     getUptime(): number {

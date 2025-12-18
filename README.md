@@ -4,16 +4,21 @@
 
 ## Features
 
+### Active Services
 - ✅ **Microservices Architecture** - Scalable service-based design with API Gateway pattern
 - 🔐 **Multiple Auth Methods** - JWT, API Keys, OAuth2 support
-- 🗄️ **Database Separation** - PostgreSQL (system/admin) + MySQL (application) + MongoDB (documents)
-- ⚡ **Caching** - Redis for high-performance caching
-- 📨 **Message Queue** - RabbitMQ for async communication
+- 🗄️ **MySQL Database** - Remote MySQL server (kittyservices.servicesinc.cloud)
+- ⚡ **In-Memory Caching** - node-cache for high-performance caching
 - 📊 **Monitoring** - Prometheus metrics + Grafana dashboards
 - 🛡️ **Security** - Rate limiting, encryption, helmet, CORS
-- 🐳 **Containerized** - Docker & Kubernetes ready
-- ☁️ **Cloud Ready** - AWS, GCP, Azure integrations
+- 🐳 **Containerized** - Docker ready
 - 📝 **TypeScript** - Full type safety
+
+### Commented Services (Ready to Activate)
+- 🗄️ **PostgreSQL** - System/admin data (commented, ready to activate)
+- 🗄️ **MongoDB** - Document storage (commented, ready to activate)
+- ⚡ **Redis** - Distributed caching (commented, using node-cache instead)
+- 📨 **RabbitMQ** - Message queue (commented, ready to activate)
 
 ## API Types Supported
 
@@ -36,33 +41,40 @@
    npm install
    ```
 
-2. **Setup environment**
+2. **Setup MySQL Database**
+   
+   Execute the SQL script in your remote MySQL server (phpMyAdmin or terminal):
+   ```bash
+   mysql -h kittyservices.servicesinc.cloud -P 3306 -u adminkitty -p webservices < database_setup.sql
+   ```
+   
+   Or copy the contents of `database_setup.sql` and execute in phpMyAdmin.
+
+3. **Setup environment**
    ```bash
    cp .env.example .env
-   # Edit .env with your configuration
+   # Edit .env with your MySQL remote configuration
    ```
 
-3. **Start all services with Docker Compose**
+4. **Start services with Docker Compose**
    ```bash
-   docker-compose up
+   docker-compose up -d
    ```
 
    This will start:
-   - PostgreSQL (port 5432) - System/Admin database
-   - MySQL (port 3306) - Application database
-   - MongoDB (port 27017) - Document store
-   - Redis (port 6379)
-   - RabbitMQ (port 5672, management UI: 15672)
-   - Prometheus (port 9090)
-   - Grafana (port 3001)
    - API Gateway (port 3000)
+   - Prometheus (port 9090) - Metrics
+   - Grafana (port 3001) - Dashboards
+   
+   **Remote Services:**
+   - MySQL (kittyservices.servicesinc.cloud:3306) - Application database
 
-4. **Access the services**
+5. **Access the services**
    - API: http://localhost:3000
    - Health Check: http://localhost:3000/health
    - Metrics: http://localhost:3000/metrics
    - Grafana: http://localhost:3001 (admin/admin)
-   - RabbitMQ Management: http://localhost:15672 (guest/guest)
+   - Prometheus: http://localhost:9090
 
 ## Development
 

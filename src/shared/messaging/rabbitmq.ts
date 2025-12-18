@@ -1,4 +1,17 @@
-import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
+/**
+ * RABBITMQ MESSAGING - DESACTIVADO TEMPORALMENTE
+ * 
+ * Sin mensajería por ahora.
+ * Para reactivar RabbitMQ:
+ * 1. Descomentar todo el código abajo
+ * 2. Descomentar servicio 'rabbitmq' en docker-compose.yml
+ * 3. Descomentar variables RABBITMQ_* en .env
+ * 4. Descomentar inicialización en src/services/api-gateway/index.ts
+ */
+
+/*
+import amqp from 'amqplib';
+import type { Channel, Connection, ConsumeMessage } from 'amqplib';
 import { config } from '@config/index';
 import { logger } from '@utils/logger';
 import { EventEmitter } from 'events';
@@ -13,12 +26,13 @@ class RabbitMQService extends EventEmitter {
 
     async connect(): Promise<void> {
         try {
-            this.connection = await amqp.connect(config.rabbitmq.url);
-            this.channel = await this.connection.createChannel();
+            this.connection = await amqp.connect(config.rabbitmq.url) as any as Connection;
+            this.channel = await (this.connection as any).createChannel();
             this.isConnected = true;
 
-            // Create exchange
-            await this.channel.assertExchange(config.rabbitmq.exchange, 'topic', { durable: true });
+            if (this.channel) {
+                await this.channel.assertExchange(config.rabbitmq.exchange, 'topic', { durable: true });
+            }
 
             logger.info('RabbitMQ connected successfully');
 
@@ -85,16 +99,13 @@ class RabbitMQService extends EventEmitter {
 
             const fullQueueName = `${config.rabbitmq.queuePrefix}.${queueName}`;
 
-            // Assert queue
             await this.channel.assertQueue(fullQueueName, {
                 durable: true,
                 deadLetterExchange: `${config.rabbitmq.exchange}.dlx`,
             });
 
-            // Bind queue to exchange
             await this.channel.bindQueue(fullQueueName, config.rabbitmq.exchange, routingKey);
 
-            // Consume messages
             await this.channel.consume(
                 fullQueueName,
                 async (msg) => {
@@ -107,7 +118,6 @@ class RabbitMQService extends EventEmitter {
                         logger.debug(`Processed message from ${queueName}`);
                     } catch (error) {
                         logger.error(`Failed to process message from ${queueName}`, error);
-                        // Reject and requeue on error
                         this.channel?.nack(msg, false, false);
                     }
                 },
@@ -151,7 +161,7 @@ class RabbitMQService extends EventEmitter {
         }
 
         if (this.connection) {
-            await this.connection.close();
+            await (this.connection as any).close();
         }
 
         this.isConnected = false;
@@ -164,4 +174,23 @@ class RabbitMQService extends EventEmitter {
 }
 
 export const rabbitmqService = new RabbitMQService();
+export default rabbitmqService;
+*/
+
+// Mock export para evitar errores de importación
+import { EventEmitter } from 'events';
+
+export type MessageHandler = (message: unknown, rawMessage: any) => Promise<void>;
+
+class RabbitMQServiceMock extends EventEmitter {
+    async connect() {}
+    async publish() { return false; }
+    async subscribe() {}
+    async createQueue() {}
+    async deleteQueue() {}
+    async close() {}
+    isReady() { return false; }
+}
+
+export const rabbitmqService = new RabbitMQServiceMock();
 export default rabbitmqService;

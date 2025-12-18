@@ -11,16 +11,16 @@ const envSchema = Joi.object({
     PORT: Joi.number().default(3000),
     API_VERSION: Joi.string().default('v1'),
 
-    // PostgreSQL
-    POSTGRES_HOST: Joi.string().required(),
+    // PostgreSQL - DESACTIVADO (opcional)
+    POSTGRES_HOST: Joi.string().optional().allow(''),
     POSTGRES_PORT: Joi.number().default(5432),
-    POSTGRES_DB: Joi.string().required(),
-    POSTGRES_USER: Joi.string().required(),
-    POSTGRES_PASSWORD: Joi.string().required(),
+    POSTGRES_DB: Joi.string().optional().allow(''),
+    POSTGRES_USER: Joi.string().optional().allow(''),
+    POSTGRES_PASSWORD: Joi.string().optional().allow(''),
     POSTGRES_POOL_MIN: Joi.number().default(2),
     POSTGRES_POOL_MAX: Joi.number().default(10),
 
-    // MySQL
+    // MySQL - ACTIVO (requerido)
     MYSQL_HOST: Joi.string().required(),
     MYSQL_PORT: Joi.number().default(3306),
     MYSQL_DB: Joi.string().required(),
@@ -29,19 +29,19 @@ const envSchema = Joi.object({
     MYSQL_POOL_MIN: Joi.number().default(2),
     MYSQL_POOL_MAX: Joi.number().default(10),
 
-    // MongoDB
-    MONGO_URI: Joi.string().required(),
+    // MongoDB - DESACTIVADO (opcional)
+    MONGO_URI: Joi.string().optional().allow(''),
     MONGO_POOL_SIZE: Joi.number().default(10),
 
-    // Redis
-    REDIS_HOST: Joi.string().required(),
+    // Redis - DESACTIVADO (opcional)
+    REDIS_HOST: Joi.string().optional().allow(''),
     REDIS_PORT: Joi.number().default(6379),
     REDIS_PASSWORD: Joi.string().allow('').default(''),
     REDIS_DB: Joi.number().default(0),
     REDIS_TTL: Joi.number().default(3600),
 
-    // RabbitMQ
-    RABBITMQ_URL: Joi.string().required(),
+    // RabbitMQ - DESACTIVADO (opcional)
+    RABBITMQ_URL: Joi.string().optional().allow(''),
     RABBITMQ_EXCHANGE: Joi.string().default('enterprise_exchange'),
     RABBITMQ_QUEUE_PREFIX: Joi.string().default('enterprise'),
 

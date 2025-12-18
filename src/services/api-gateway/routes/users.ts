@@ -14,7 +14,7 @@ router.get('/', authenticate, authorize('admin'), asyncHandler(async (req: Reque
         `SELECT id, email, name, role, created_at
      FROM users
      ORDER BY created_at DESC
-     LIMIT $1 OFFSET $2`,
+     LIMIT ? OFFSET ?`,
         [limit, offset],
     );
 
@@ -45,7 +45,7 @@ router.get('/:id', authenticate, asyncHandler(async (req: Request, res: Response
     }
 
     const result = await postgresDB.query(
-        'SELECT id, email, name, role, created_at FROM users WHERE id = $1',
+        'SELECT id, email, name, role, created_at FROM users WHERE id = ?',
         [id],
     );
 
@@ -76,7 +76,7 @@ router.patch('/:id', authenticate, asyncHandler(async (req: Request, res: Respon
     }
 
     const result = await postgresDB.query(
-        'UPDATE users SET name = $1 WHERE id = $2 RETURNING id, email, name, role, created_at',
+        'UPDATE users SET name = ? WHERE id = ? RETURNING id, email, name, role, created_at',
         [name, id],
     );
 
@@ -97,7 +97,7 @@ router.delete('/:id', authenticate, authorize('admin'), asyncHandler(async (req:
     const { id } = req.params;
 
     const result = await postgresDB.query(
-        'DELETE FROM users WHERE id = $1 RETURNING id',
+        'DELETE FROM users WHERE id = ? RETURNING id',
         [id],
     );
 

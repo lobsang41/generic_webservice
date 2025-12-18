@@ -26,7 +26,7 @@ router.post('/register', strictRateLimiter, asyncHandler(async (req: Request, re
 
     // Check if user exists
     const existing = await postgresDB.query(
-        'SELECT id FROM users WHERE email = $1',
+        'SELECT id FROM users WHERE email = ?',
         [email],
     );
 
@@ -42,7 +42,7 @@ router.post('/register', strictRateLimiter, asyncHandler(async (req: Request, re
     // Create user
     await postgresDB.query(
         `INSERT INTO users (id, email, password_hash, name, role, created_at)
-     VALUES ($1, $2, $3, $4, $5, NOW())`,
+     VALUES (?, ?, ?, ?, ?, NOW())`,
         [userId, email, hashedPassword, name, 'user'],
     );
 
@@ -75,7 +75,7 @@ router.post('/login', strictRateLimiter, asyncHandler(async (req: Request, res: 
 
     // Find user
     const result = await postgresDB.query(
-        'SELECT id, email, password_hash, name, role FROM users WHERE email = $1',
+        'SELECT id, email, password_hash, name, role FROM users WHERE email = ?',
         [email],
     );
 

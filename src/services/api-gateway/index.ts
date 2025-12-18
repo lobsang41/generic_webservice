@@ -8,9 +8,10 @@ import { requestLogger } from '@middleware/requestLogger';
 import { errorHandler, notFoundHandler } from '@middleware/errorHandler';
 import { metricsMiddleware, metricsHandler } from '@monitoring/prometheus';
 import { healthCheckHandler, livenessHandler, readinessHandler } from '@monitoring/healthCheck';
-import postgresDB from '@database/postgres';
-import mongoDB from '@database/mongodb';
-import rabbitmqService from '@messaging/rabbitmq';
+// DESACTIVADO: Usando solo MySQL por ahora
+// import postgresDB from '@database/postgres';
+// import mongoDB from '@database/mongodb';
+// import rabbitmqService from '@messaging/rabbitmq';
 
 // Import routes
 import apiRoutes from './routes/index';
@@ -82,11 +83,12 @@ class APIGateway {
     async initializeDatabases() {
         try {
             logger.info('Connecting to databases...');
-            await Promise.all([
-                postgresDB.connect(),
-                mongoDB.connect(),
-            ]);
-            logger.info('All databases connected successfully');
+            // DESACTIVADO: Solo MySQL por ahora (se conecta automáticamente en las rutas)
+            // await Promise.all([
+            //     postgresDB.connect(),
+            //     mongoDB.connect(),
+            // ]);
+            logger.info('MySQL will connect on first query');
         } catch (error) {
             logger.error('Database connection failed', error);
             throw error;
@@ -95,12 +97,13 @@ class APIGateway {
 
     async initializeMessaging() {
         try {
-            logger.info('Connecting to message queue...');
-            await rabbitmqService.connect();
-            logger.info('Message queue connected successfully');
+            // DESACTIVADO: Sin mensajería por ahora
+            // logger.info('Connecting to message queue...');
+            // await rabbitmqService.connect();
+            // logger.info('Message queue connected successfully');
+            logger.info('Message queue disabled');
         } catch (error) {
             logger.warn('Message queue connection failed, continuing without it', error);
-            // Don't throw - allow service to start without RabbitMQ
         }
     }
 
@@ -142,11 +145,12 @@ class APIGateway {
             }
 
             // Close databases
-            await Promise.all([
-                postgresDB.close(),
-                mongoDB.close(),
-                rabbitmqService.close(),
-            ]);
+            // DESACTIVADO: Solo MySQL por ahora
+            // await Promise.all([
+            //     postgresDB.close(),
+            //     mongoDB.close(),
+            //     rabbitmqService.close(),
+            // ]);
 
             logger.info('Graceful shutdown completed');
             process.exit(0);
