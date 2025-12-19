@@ -1,0 +1,86 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+README_ES.md
+*.md
+docs/
+
+# Tests
+tests/
+test-api.js
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+coverage/
+.nyc_output/
+
+# Development configs
+tsconfig.json
+jest.config.js
+.eslintrc*
+.prettierrc*
+.editorconfig
+
+# Development tools
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+*.log
+
+# Source code (ya está compilado en dist/)
+src/
+
+# Docker
+docker-compose.yml
+docker-compose.*.yml
+Dockerfile.dev
+
+# Kubernetes
+k8s/
+
+# Monitoring configs (local)
+monitoring/
+
+# Logs
+logs/
+*.log
+
+# Build artifacts (se generan en el build)
+dist/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Railway
+railway.json
+RAILWAY_ENV_VARS.md
+
+# Render
+render.yaml
+
+# Procfile
+Procfile
