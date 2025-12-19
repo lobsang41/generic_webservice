@@ -154,12 +154,12 @@ services:
       # POSTGRES_USER: postgres
       # POSTGRES_PASSWORD: postgres
       
-      # MySQL - Servidor Remoto
-      MYSQL_HOST: kittyservices.servicesinc.cloud
-      MYSQL_PORT: 3306
-      MYSQL_DB: webservices  # CAMBIAR por el nombre de tu base de datos
-      MYSQL_USER: adminkitty  # CAMBIAR por tu usuario
-      MYSQL_PASSWORD: gaqpad-doSzod-3ruzje  # CAMBIAR por tu contraseña
+      # MySQL - Servidor Remoto (usando variables de entorno)
+      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_PORT: ${MYSQL_PORT}
+      MYSQL_DB: ${MYSQL_DB}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       
       # DESACTIVADO: MongoDB comentado
       # MONGO_URI: mongodb://mongodb:27017/enterprise_db
@@ -169,9 +169,9 @@ services:
       # DESACTIVADO: RabbitMQ comentado
       # RABBITMQ_URL: amqp://rabbitmq:5672
       
-      JWT_SECRET: dev-jwt-secret-change-in-production
-      JWT_REFRESH_SECRET: dev-refresh-secret-change-in-production
-      ENCRYPTION_KEY: dev-encryption-key-32chars!!!
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
     ports:
       - "3000:3000"
     volumes:
