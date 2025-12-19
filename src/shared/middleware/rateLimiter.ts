@@ -65,7 +65,7 @@ export const authenticatedRateLimiter: RateLimitRequestHandler = rateLimit({
 // Strict rate limiter for sensitive operations (e.g., login, registration)
 export const strictRateLimiter: RateLimitRequestHandler = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5,
+    max: 10, // Increased from 5 to 10 to reduce false positives
     standardHeaders: true,
     legacyHeaders: false,
     // DESACTIVADO: Usando almacenamiento en memoria en lugar de Redis

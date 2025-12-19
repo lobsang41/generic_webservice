@@ -37,9 +37,6 @@ RUN npm ci --only=production && \
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
 
-# Copy necessary files
-COPY .env.example .env
-
 # Change ownership to non-root user
 RUN chown -R nodejs:nodejs /app
 

@@ -73,6 +73,12 @@ router.post('/login', strictRateLimiter, asyncHandler(async (req: Request, res: 
         throw new ValidationError('Email and password are required');
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        throw new ValidationError('Invalid email format');
+    }
+
     // Find user
     const result = await postgresDB.query(
         'SELECT id, email, password_hash, name, role FROM users WHERE email = ?',
