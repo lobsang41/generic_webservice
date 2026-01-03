@@ -32,7 +32,7 @@
                 "src/shared/*"
             ],
             "@services/*": [
-                "src/services/*"
+                "src/shared/services/*"
             ],
             "@config/*": [
                 "src/shared/config/*"

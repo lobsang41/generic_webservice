@@ -7,6 +7,7 @@
 ### Active Services
 - ✅ **Microservices Architecture** - Scalable service-based design with API Gateway pattern
 - 🔐 **Multiple Auth Methods** - JWT, API Keys, OAuth2 support
+- 🏢 **SaaS Client Module** - Multi-tenant system with tiers, API keys, and rate limiting
 - 🗄️ **MySQL Database** - Remote MySQL server (kittyservices.servicesinc.cloud)
 - ⚡ **In-Memory Caching** - node-cache for high-performance caching
 - 📊 **Monitoring** - Prometheus metrics + Grafana dashboards
@@ -105,7 +106,12 @@ npm run test:e2e        # End-to-end tests
 
 ## API Documentation
 
-### Authentication
+### Base URL
+```
+http://localhost:3000/api/v1
+```
+
+### Authentication Endpoints
 
 #### Register a new user
 ```bash
@@ -121,7 +127,7 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
   -d '{"email": "user@example.com", "password": "password123"}'
 ```
 
-#### Generate API Key
+#### Generate User API Key
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/api-key \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
@@ -134,13 +140,88 @@ curl -X POST http://localhost:3000/api/v1/auth/api-key \
 **With JWT:**
 ```bash
 curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  http://localhost:3000/api/v1/users/me
+  http://localhost:3000/api/v1/auth/me
 ```
 
-**With API Key:**
+**With User API Key:**
 ```bash
 curl -H "X-API-Key: YOUR_API_KEY" \
-  http://localhost:3000/api/v1/users/me
+  http://localhost:3000/api/v1/auth/me
+```
+
+**With Client API Key (for SaaS clients):**
+```bash
+curl -H "X-API-Key: mk_YOUR_CLIENT_API_KEY" \
+  http://localhost:3000/api/v1/client-test/test
+```
+
+### 🆕 SaaS Client Module
+
+#### Client Tiers (Public)
+- `GET /api/v1/client-tiers` - List available plans
+- `GET /api/v1/client-tiers/:id` - Get tier details
+- `POST /api/v1/client-tiers` - Create custom tier (admin)
+- `PATCH /api/v1/client-tiers/:id` - Update tier (admin)
+- `DELETE /api/v1/client-tiers/:id` - Deactivate tier (admin)
+
+#### Clients (Admin Only)
+- `POST /api/v1/clients` - Create client
+- `GET /api/v1/clients` - List clients (paginated)
+- `GET /api/v1/clients/:id` - Get client with tier info
+- `PATCH /api/v1/clients/:id` - Update client
+- `DELETE /api/v1/clients/:id` - Deactivate client
+- `GET /api/v1/clients/:id/usage` - Get usage statistics
+- `POST /api/v1/clients/:id/reset-usage` - Reset monthly usage
+
+#### Client API Keys
+- `POST /api/v1/clients/:clientId/api-keys` - Generate API Key (prefix `mk_`)
+- `GET /api/v1/clients/:clientId/api-keys` - List client's API Keys
+- `DELETE /api/v1/clients/:clientId/api-keys/:keyId` - Revoke API Key
+
+#### Client API Key Test Endpoint
+```bash
+curl -H "X-API-Key: mk_YOUR_CLIENT_KEY" \
+  http://localhost:3000/api/v1/client-test/test
+```
+
+**Response includes:**
+- Client information
+- Tier details and limits
+- Current usage statistics
+- Rate limiting headers (`X-RateLimit-*`)
+- Monthly usage headers (`X-Monthly-*`)
+
+### Example: Complete SaaS Client Flow
+
+```bash
+# 1. Login as admin
+TOKEN=$(curl -X POST http://localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@example.com", "password": "admin123"}' \
+  | jq -r '.data.accessToken')
+
+# 2. Create a client
+CLIENT_ID=$(curl -X POST http://localhost:3000/api/v1/clients \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Acme Corp",
+    "slug": "acme-corp",
+    "tier_id": "tier-pro",
+    "contact_email": "contact@acme.com",
+    "contact_name": "John Doe"
+  }' | jq -r '.data.client.id')
+
+# 3. Generate Client API Key
+CLIENT_KEY=$(curl -X POST http://localhost:3000/api/v1/clients/$CLIENT_ID/api-keys \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Production Key", "environment": "production"}' \
+  | jq -r '.data.key')
+
+# 4. Test the Client API Key
+curl -H "X-API-Key: $CLIENT_KEY" \
+  http://localhost:3000/api/v1/client-test/test
 ```
 
 ## Project Structure
@@ -209,46 +290,31 @@ Pre-configured dashboards show:
 
 ## Database Schema
 
-### Database Separation Pattern
+### Current Setup: MySQL Only
 
-This project implements **database separation** following enterprise best practices:
+This project currently uses **MySQL** as the primary database:
 
-- **PostgreSQL** (`enterprise_system_db`): System/admin data
-  - API keys, OAuth2 tokens, sessions
-  - Audit logs, system config
-  - See: 001_system_schema.sql
+**MySQL Tables** (`webservices` database):
 
-- **MySQL** (`enterprise_app_db`): Application/business data
-  - Users, profiles, preferences
-  - Posts, transactions, business entities
-  - See: 001_application_schema.sql
-
-- **MongoDB**: Flexible schema data
-  - Activity logs, events, analytics
-
-**Why separate?**
-- Security isolation (compromised app DB ≠ compromised system)
-- Independent scaling
-- Different backup strategies
-- Compliance (audit logs separated)
-
-See [DATABASE_ARCHITECTURE.md](file:///c:/nservice/docs/DATABASE_ARCHITECTURE.md) for complete details.
-
-### PostgreSQL Tables
-- `api_keys` - API key management
-- `oauth2_tokens` - OAuth2 token storage
-- `sessions` - Session management
-- `audit_logs` - Audit trail
-- `system_config` - System configuration
-
-### MySQL Tables
+**Users & Authentication:**
 - `users` - User accounts
-- `user_profiles` - User profiles
-- `user_preferences` - User settings
-- `posts` - Content/articles (example)
-- `transactions` - Transactions (example)
+- `api_keys` - User API keys
 
-See `src/shared/database/migrations/` for full schema.
+**SaaS Client Module:**
+- `client_tiers` - Client plans/tiers (Free, Pro, Enterprise)
+- `clients` - SaaS clients/tenants with usage tracking
+- `client_api_keys` - Client API keys (prefix `mk_`)
+
+See `src/shared/database/migrations/001_unified_mysql_schema.sql` for the complete schema.
+
+### Optional Services (Commented Out)
+
+The following databases are ready to activate but currently commented:
+
+- **PostgreSQL** - For system/admin data separation
+- **MongoDB** - For flexible schema data
+
+To activate, uncomment in `docker-compose.yml` and update configuration.
 
 ## Environment Variables
 

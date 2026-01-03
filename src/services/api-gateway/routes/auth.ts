@@ -5,7 +5,7 @@ import { apiKeyService } from '@auth/apiKey';
 import { authenticate } from '@middleware/auth';
 import { strictRateLimiter } from '@middleware/rateLimiter';
 import { asyncHandler, ValidationError, AuthenticationError } from '@middleware/errorHandler';
-import postgresDB from '@database/postgres';
+import mysqlDB from '@database/mysql';
 import { nanoid } from 'nanoid';
 import { authenticationAttempts } from '@monitoring/prometheus';
 
@@ -25,12 +25,12 @@ router.post('/register', strictRateLimiter, asyncHandler(async (req: Request, re
     }
 
     // Check if user exists
-    const existing = await postgresDB.query(
+    const existing = await mysqlDB.query(
         'SELECT id FROM users WHERE email = ?',
         [email],
     );
 
-    if (existing.rows.length > 0) {
+    if (existing.length > 0) {
         authenticationAttempts.inc({ method: 'register', status: 'failed' });
         throw new ValidationError('User already exists');
     }
@@ -40,7 +40,7 @@ router.post('/register', strictRateLimiter, asyncHandler(async (req: Request, re
     const userId = nanoid();
 
     // Create user
-    await postgresDB.query(
+    await mysqlDB.query(
         `INSERT INTO users (id, email, password_hash, name, role, created_at)
      VALUES (?, ?, ?, ?, ?, NOW())`,
         [userId, email, hashedPassword, name, 'user'],
@@ -80,17 +80,17 @@ router.post('/login', strictRateLimiter, asyncHandler(async (req: Request, res: 
     }
 
     // Find user
-    const result = await postgresDB.query(
-        'SELECT id, email, password_hash, name, role FROM users WHERE email = ?',
+    const result = await mysqlDB.query(
+        'SELECT id, email, password_hash, name, role, permissions FROM users WHERE email = ?',
         [email],
     );
 
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
         authenticationAttempts.inc({ method: 'login', status: 'failed' });
         throw new AuthenticationError('Invalid credentials');
     }
 
-    const user = result.rows[0];
+    const user = result[0] as any;
 
     // Verify password
     const isValid = await bcrypt.compare(password, user.password_hash);
@@ -99,11 +99,12 @@ router.post('/login', strictRateLimiter, asyncHandler(async (req: Request, res: 
         throw new AuthenticationError('Invalid credentials');
     }
 
-    // Generate tokens
+    // Generate tokens (include permissions if user has them)
     const tokens = jwtService.generateTokenPair({
         userId: user.id,
         email: user.email,
         role: user.role,
+        permissions: user.permissions, // Include permissions in JWT
     });
 
     authenticationAttempts.inc({ method: 'login', status: 'success' });

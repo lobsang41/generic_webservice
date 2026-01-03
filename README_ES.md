@@ -7,6 +7,7 @@
 ### Servicios Activos
 - ✅ **Arquitectura de Microservicios** - Diseño escalable basado en servicios con patrón API Gateway
 - 🔐 **Múltiples Métodos de Autenticación** - JWT, API Keys, soporte OAuth2
+- 🏢 **Módulo de Clientes SaaS** - Sistema multi-tenant con tiers, API keys y rate limiting
 - 🗄️ **Base de Datos MySQL Remota** - Servidor MySQL en kittyservices.servicesinc.cloud
 - ⚡ **Caché en Memoria** - node-cache para caché de alto rendimiento
 - 📊 **Monitoreo** - Métricas de Prometheus + dashboards de Grafana
@@ -102,15 +103,16 @@ npm start
 **Base de Datos:** webservices
 **Usuario:** adminkitty
 
-El script `database_setup.sql` crea las siguientes tablas:
+El script `src/shared/database/migrations/001_unified_mysql_schema.sql` crea las siguientes tablas:
+
+**Usuarios y Autenticación:**
 - `users` - Usuarios del sistema
-- `user_profiles` - Perfiles de usuario
-- `user_preferences` - Preferencias de usuario
-- `api_keys` - Claves API
-- `sessions` - Sesiones de usuario
-- `audit_logs` - Logs de auditoría
-- `posts` - Publicaciones (ejemplo)
-- `transactions` - Transacciones (ejemplo)
+- `api_keys` - Claves API de usuarios
+
+**Módulo de Clientes SaaS:**
+- `client_tiers` - Planes/tipos de cliente (Free, Pro, Enterprise)
+- `clients` - Clientes/tenants con tracking de uso
+- `client_api_keys` - API Keys de clientes (prefijo `mk_`)
 
 ## Rutas de la API
 
@@ -126,6 +128,7 @@ http://localhost:3000/api/v1
 - `POST /api/v1/auth/refresh` - Refrescar token
 - `POST /api/v1/auth/logout` - Cerrar sesión
 - `GET /api/v1/auth/me` - Obtener usuario actual
+- `POST /api/v1/auth/api-key` - Generar API Key de usuario
 
 ### Usuarios
 
@@ -133,6 +136,35 @@ http://localhost:3000/api/v1
 - `GET /api/v1/users/:id` - Obtener usuario
 - `PATCH /api/v1/users/:id` - Actualizar usuario
 - `DELETE /api/v1/users/:id` - Eliminar usuario (admin)
+
+### 🆕 Módulo de Clientes SaaS
+
+#### Tiers/Planes (Público)
+- `GET /api/v1/client-tiers` - Listar planes disponibles
+- `GET /api/v1/client-tiers/:id` - Obtener detalles de un plan
+- `POST /api/v1/client-tiers` - Crear plan personalizado (admin)
+- `PATCH /api/v1/client-tiers/:id` - Actualizar plan (admin)
+- `DELETE /api/v1/client-tiers/:id` - Desactivar plan (admin)
+
+#### Clientes (Admin)
+- `POST /api/v1/clients` - Crear cliente
+- `GET /api/v1/clients` - Listar clientes (paginado)
+- `GET /api/v1/clients/:id` - Obtener cliente con tier
+- `PATCH /api/v1/clients/:id` - Actualizar cliente
+- `DELETE /api/v1/clients/:id` - Desactivar cliente
+- `GET /api/v1/clients/:id/usage` - Estadísticas de uso
+- `POST /api/v1/clients/:id/reset-usage` - Resetear uso mensual
+
+#### API Keys de Clientes
+- `POST /api/v1/clients/:clientId/api-keys` - Generar API Key (prefijo `mk_`)
+- `GET /api/v1/clients/:clientId/api-keys` - Listar API Keys del cliente
+- `DELETE /api/v1/clients/:clientId/api-keys/:keyId` - Revocar API Key
+
+#### Prueba de Client API Key
+- `GET /api/v1/client-test/test` - Endpoint de prueba (requiere Client API Key)
+  - Headers: `X-API-Key: mk_...`
+  - Retorna información del cliente, tier y uso
+  - Incluye headers de rate limiting y uso mensual
 
 ## Seguridad
 

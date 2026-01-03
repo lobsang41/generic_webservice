@@ -29,7 +29,9 @@ class APIGateway {
 
     private initializeMiddlewares() {
         // Security
-        this.app.use(helmet());
+        this.app.use(helmet({
+            contentSecurityPolicy: false, // Permitir inline scripts para el dashboard
+        }));
         this.app.use(cors({
             origin: config.cors.origin,
             credentials: config.cors.credentials,
@@ -41,6 +43,9 @@ class APIGateway {
 
         // Compression
         this.app.use(compression());
+
+        // Static files (dashboard)
+        this.app.use(express.static('public'));
 
         // Logging
         this.app.use(requestLogger);

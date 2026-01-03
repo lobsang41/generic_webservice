@@ -4,8 +4,8 @@
   "description": "Enterprise-grade Node.js webservice with microservices architecture",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/services/api-gateway/index.ts",
-    "dev:user": "ts-node-dev --respawn --transpile-only src/services/user-service/index.ts",
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/services/api-gateway/index.ts",
+    "dev:user": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/services/user-service/index.ts",
     "build": "tsc && tsc-alias",
     "start": "node dist/services/api-gateway/index.js",
     "start:user": "node dist/services/user-service/index.js",
@@ -14,6 +14,7 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
+    "test:types": "tsc --project tsconfig.test.json --noEmit",
     "test:integration": "jest --config jest.integration.config.js",
     "test:e2e": "jest --config jest.e2e.config.js",
     "test:load": "artillery run tests/load/artillery.yml",
@@ -121,6 +122,7 @@
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "tsc-alias": "^1.8.16",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.3.3"
   },
   "engines": {
@@ -135,6 +137,7 @@
     "@middleware": "dist/shared/middleware",
     "@utils": "dist/shared/utils",
     "@monitoring": "dist/shared/monitoring",
-    "@auth": "dist/shared/auth"
+    "@auth": "dist/shared/auth",
+    "@services": "dist/shared/services"
   }
 }

@@ -3,11 +3,19 @@ import { jwtService, JWTPayload } from '@auth/jwt';
 import { apiKeyService } from '@auth/apiKey';
 import { config } from '@config/index';
 import { AuthenticationError, AuthorizationError } from './errorHandler';
+import { clientAPIKeyService, ValidatedAPIKey } from '@services/clientApiKeyService';
+import { ClientWithTier } from '@services/clientService';
+import { Scope, parseScopes, SCOPE_GROUPS } from '@auth/scopes';
 
 declare global {
     namespace Express {
         interface Request {
-            user?: JWTPayload & { authType: 'jwt' | 'apiKey' };
+            user?: JWTPayload & { authType: 'jwt' | 'apiKey' | 'clientApiKey' };
+            client?: ClientWithTier;
+            clientApiKey?: ValidatedAPIKey;
+            scopes?: Scope[];
+            userId?: string;
+            clientId?: string;
         }
     }
 }
@@ -32,6 +40,22 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
         const payload = jwtService.verifyAccessToken(token);
 
         req.user = { ...payload, authType: 'jwt' };
+        
+        // Auto-assign scopes based on role
+        if (payload.role === 'admin') {
+            // Admins get all scopes (SUPER_ADMIN group)
+            req.scopes = [...SCOPE_GROUPS.SUPER_ADMIN];
+            req.userId = payload.userId;
+        } else if (payload.permissions) {
+            // Regular users get scopes from their permissions
+            req.scopes = parseScopes(payload.permissions);
+            req.userId = payload.userId;
+        } else {
+            // Users without explicit permissions get empty scopes
+            req.scopes = [];
+            req.userId = payload.userId;
+        }
+        
         next();
     } catch (error) {
         if (error instanceof AuthenticationError) {
@@ -61,12 +85,17 @@ export const authenticateAPIKey = async (req: Request, res: Response, next: Next
             throw new AuthenticationError('Invalid API key');
         }
 
+        // Load scopes from permissions
+        const scopes = parseScopes(validatedKey.permissions);
+
         req.user = {
             userId: validatedKey.userId,
             email: '', // API keys don't have email
             permissions: validatedKey.permissions,
             authType: 'apiKey',
         };
+        req.scopes = scopes;
+        req.userId = validatedKey.userId;
 
         next();
     } catch (error) {
@@ -139,4 +168,82 @@ export const requirePermissions = (...permissions: string[]) => {
 
         next();
     };
+};
+
+// ============================================================================
+// CLIENT API KEY AUTHENTICATION
+// ============================================================================
+
+/**
+ * Middleware para autenticar usando Client API Keys
+ * Valida la API key y carga información del cliente y tier en req.client
+ */
+export const authenticateClientAPIKey = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const apiKeyHeader = req.headers[config.apiKey.header.toLowerCase()] as string;
+
+        if (!apiKeyHeader) {
+            throw new AuthenticationError('No API key provided');
+        }
+
+        // Validar Client API key
+        const validated = await clientAPIKeyService.validateClientAPIKey(apiKeyHeader);
+        if (!validated) {
+            throw new AuthenticationError('Invalid or expired API key');
+        }
+
+        // Verificar que el cliente esté activo
+        if (!validated.client.is_active) {
+            throw new AuthenticationError('Client account is inactive');
+        }
+
+        // Load scopes from permissions
+        const scopes = parseScopes(validated.permissions);
+
+        // Cargar información en el request
+        req.client = validated.client;
+        req.clientApiKey = validated;
+        req.user = {
+            userId: validated.clientId,
+            email: validated.client.contact_email,
+            role: 'client',
+            permissions: validated.permissions,
+            authType: 'clientApiKey',
+        };
+        req.scopes = scopes;
+        req.clientId = validated.clientId;
+
+        next();
+    } catch (error) {
+        if (error instanceof AuthenticationError) {
+            next(error);
+        } else {
+            next(new AuthenticationError('Client API key authentication failed'));
+        }
+    }
+};
+
+/**
+ * Middleware flexible que soporta JWT, User API Key o Client API Key
+ */
+export const authenticateFlexible = async (req: Request, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
+    const apiKeyHeader = req.headers[config.apiKey.header.toLowerCase()] as string;
+
+    // Try JWT first
+    if (authHeader?.startsWith('Bearer ')) {
+        return authenticateJWT(req, res, next);
+    }
+
+    // Try Client API Key (starts with 'mk_')
+    if (apiKeyHeader?.startsWith('mk_')) {
+        return authenticateClientAPIKey(req, res, next);
+    }
+
+    // Fall back to User API key
+    if (apiKeyHeader) {
+        return authenticateAPIKey(req, res, next);
+    }
+
+    next(new AuthenticationError('No authentication credentials provided'));
 };
