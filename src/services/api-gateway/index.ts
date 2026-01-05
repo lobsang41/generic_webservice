@@ -122,6 +122,15 @@ class APIGateway {
                 logger.warn('Starting without message queue');
             });
 
+            // Initialize audit cleanup job
+            try {
+                const { startAuditCleanupJob } = await import('@shared/jobs/auditCleanupJob');
+                startAuditCleanupJob();
+                logger.info('✅ Audit cleanup job initialized');
+            } catch (error) {
+                logger.warn('Failed to initialize audit cleanup job', error);
+            }
+
             // Start server
             this.server = this.app.listen(config.port, () => {
                 logger.info(`🚀 API Gateway listening on port ${config.port}`);

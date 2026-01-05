@@ -4,6 +4,7 @@ import { asyncHandler, ValidationError, NotFoundError } from '@middleware/errorH
 import { clientService } from '@services/clientService';
 import { requireScope, requireAnyScope } from '@middleware/scopeValidator';
 import { SCOPES } from '@auth/scopes';
+import { getAuditMetadata } from '@shared/utils/auditLogger';
 
 const router = Router();
 
@@ -52,6 +53,7 @@ router.post('/',
             contact_email,
             contact_name,
             metadata,
+            auditMetadata: getAuditMetadata(req),
         });
 
         res.status(201).json({
@@ -136,6 +138,7 @@ router.patch('/:id',
             contact_name,
             metadata,
             is_active,
+            auditMetadata: getAuditMetadata(req),
         });
 
         if (!client) {

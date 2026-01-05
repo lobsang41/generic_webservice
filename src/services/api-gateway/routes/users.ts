@@ -6,6 +6,7 @@ import { SCOPES, validateScopes } from '@auth/scopes';
 import mysqlDB from '@database/mysql';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import { logInsert, logUpdate, logDelete, getAuditMetadata } from '@shared/utils/auditLogger';
 
 const router = Router();
 
@@ -66,6 +67,16 @@ router.post('/', authenticate, requireScope(SCOPES.USERS_WRITE), asyncHandler(as
         'SELECT id, email, name, role, permissions, created_at FROM users WHERE id = ?',
         [userId]
     );
+
+    // Log audit
+    await logInsert('users', userId, {
+        email,
+        name: name || email.split('@')[0],
+        role,
+        permissions,
+        is_active: 1,
+        email_verified: 0,
+    }, getAuditMetadata(req));
 
     res.status(201).json({
         success: true,
@@ -142,6 +153,16 @@ router.patch('/:id', authenticate, asyncHandler(async (req: Request, res: Respon
         throw new ValidationError('Not authorized to update this user');
     }
 
+    // Get old values for audit
+    const oldUser = await mysqlDB.query(
+        'SELECT id, email, name, role, permissions FROM users WHERE id = ?',
+        [id]
+    );
+
+    if (oldUser.length === 0) {
+        throw new NotFoundError('User not found');
+    }
+
     const updates: string[] = [];
     const values: any[] = [];
 
@@ -185,6 +206,17 @@ router.patch('/:id', authenticate, asyncHandler(async (req: Request, res: Respon
         throw new NotFoundError('User not found');
     }
 
+    // Log audit
+    await logUpdate('users', id, {
+        name: (oldUser[0] as any).name,
+        role: (oldUser[0] as any).role,
+        permissions: (oldUser[0] as any).permissions,
+    }, {
+        name: (result[0] as any).name,
+        role: (result[0] as any).role,
+        permissions: (result[0] as any).permissions,
+    }, getAuditMetadata(req));
+
     res.json({
         success: true,
         data: {
@@ -197,6 +229,16 @@ router.patch('/:id', authenticate, asyncHandler(async (req: Request, res: Respon
 router.delete('/:id', authenticate, requireAnyScope([SCOPES.USERS_DELETE, SCOPES.USERS_ADMIN]), asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
 
+    // Get user data before deleting for audit
+    const userData = await mysqlDB.query(
+        'SELECT id, email, name, role, permissions FROM users WHERE id = ?',
+        [id]
+    );
+
+    if (userData.length === 0) {
+        throw new NotFoundError('User not found');
+    }
+
     const result = await mysqlDB.query(
         'DELETE FROM users WHERE id = ?',
         [id],
@@ -205,6 +247,14 @@ router.delete('/:id', authenticate, requireAnyScope([SCOPES.USERS_DELETE, SCOPES
     if ((result as any).affectedRows === 0) {
         throw new NotFoundError('User not found');
     }
+
+    // Log audit
+    await logDelete('users', id, {
+        email: (userData[0] as any).email,
+        name: (userData[0] as any).name,
+        role: (userData[0] as any).role,
+        permissions: (userData[0] as any).permissions,
+    }, getAuditMetadata(req));
 
     res.json({
         success: true,

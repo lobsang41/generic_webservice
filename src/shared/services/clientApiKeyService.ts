@@ -4,6 +4,7 @@ import mysqlDB from '@database/mysql';
 import { logger } from '@utils/logger';
 import { clientService, ClientWithTier } from './clientService';
 import { Scope, validateScopes, scopesToJSON, parseScopes } from '@auth/scopes';
+import { logInsert } from '@utils/auditLogger';
 
 // ============================================================================
 // INTERFACES
@@ -94,6 +95,17 @@ class ClientAPIKeyService {
             if (!apiKey) {
                 throw new Error('Failed to retrieve created API key');
             }
+
+            // Log audit
+            await logInsert('client_api_keys', keyId, {
+                client_id: data.client_id,
+                name: data.name,
+                environment: data.environment || 'production',
+                permissions: data.scopes,
+                expires_at: expiresAt,
+                created_by_user_id: data.created_by_user_id,
+                is_active: true,
+            });
 
             logger.info(`Client API key created: ${keyId} for client ${data.client_id}`, {
                 scopes: data.scopes,

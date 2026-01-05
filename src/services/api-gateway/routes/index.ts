@@ -5,6 +5,7 @@ import clientRoutes from './clients';
 import clientTierRoutes from './client-tiers';
 import clientApiKeyRoutes from './client-api-keys';
 import clientTestRoutes from './client-test';
+import auditLogRoutes from './audit-logs';
 import { adaptiveRateLimiter } from '@middleware/rateLimiter';
 
 const router = Router();
@@ -19,6 +20,7 @@ router.use('/clients', clientRoutes);
 router.use('/client-tiers', clientTierRoutes);
 router.use('/clients', clientApiKeyRoutes); // Nested routes: /clients/:clientId/api-keys
 router.use('/client-test', clientTestRoutes); // Test endpoint for Client API Keys
+router.use('/audit-logs', auditLogRoutes); // Audit logs (admin only)
 
 // API info endpoint
 router.get('/', (req, res) => {
@@ -31,6 +33,7 @@ router.get('/', (req, res) => {
             clients: '/api/v1/clients',
             clientTiers: '/api/v1/client-tiers',
             clientTest: '/api/v1/client-test (requires Client API Key)',
+            auditLogs: '/api/v1/audit-logs (admin only)',
         },
     });
 });

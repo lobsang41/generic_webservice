@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid';
 import mysqlDB from '@database/mysql';
 import { logger } from '@utils/logger';
+import { logInsert, logUpdate } from '@utils/auditLogger';
 
 // ============================================================================
 // INTERFACES
@@ -46,6 +47,7 @@ export interface CreateClientData {
     contact_email: string;
     contact_name: string;
     metadata?: Record<string, unknown>;
+    auditMetadata?: { changedBy?: string; ipAddress?: string; userAgent?: string };
 }
 
 export interface UpdateClientData {
@@ -55,6 +57,7 @@ export interface UpdateClientData {
     contact_name?: string;
     metadata?: Record<string, unknown>;
     is_active?: boolean;
+    auditMetadata?: { changedBy?: string; ipAddress?: string; userAgent?: string };
 }
 
 export interface ClientUsageStats {
@@ -104,6 +107,16 @@ class ClientService {
             if (!client) {
                 throw new Error('Failed to retrieve created client');
             }
+
+            // Log audit
+            await logInsert('clients', clientId, {
+                name: data.name,
+                slug: data.slug,
+                tier_id: data.tier_id,
+                contact_email: data.contact_email,
+                contact_name: data.contact_name,
+                is_active: true,
+            }, data.auditMetadata);
 
             logger.info(`Client created: ${clientId} (${data.name})`);
             return client;
@@ -223,6 +236,12 @@ class ClientService {
      */
     async updateClient(id: string, data: UpdateClientData): Promise<Client | null> {
         try {
+            // Get old values for audit
+            const oldClient = await this.getClientById(id);
+            if (!oldClient) {
+                return null;
+            }
+
             const updates: string[] = [];
             const values: unknown[] = [];
 
@@ -262,8 +281,27 @@ class ClientService {
                 values,
             );
 
+            const newClient = await this.getClientById(id);
+            
+            // Log audit
+            if (newClient) {
+                await logUpdate('clients', id, {
+                    name: oldClient.name,
+                    tier_id: oldClient.tier_id,
+                    contact_email: oldClient.contact_email,
+                    contact_name: oldClient.contact_name,
+                    is_active: oldClient.is_active,
+                }, {
+                    name: newClient.name,
+                    tier_id: newClient.tier_id,
+                    contact_email: newClient.contact_email,
+                    contact_name: newClient.contact_name,
+                    is_active: newClient.is_active,
+                }, data.auditMetadata);
+            }
+
             logger.info(`Client updated: ${id}`);
-            return this.getClientById(id);
+            return newClient;
         } catch (error) {
             logger.error('Failed to update client', { id, data, error });
             throw error;

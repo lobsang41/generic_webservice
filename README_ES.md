@@ -113,6 +113,7 @@ El script `src/shared/database/migrations/001_unified_mysql_schema.sql` crea las
 - `client_tiers` - Planes/tipos de cliente (Free, Pro, Enterprise)
 - `clients` - Clientes/tenants con tracking de uso
 - `client_api_keys` - API Keys de clientes (prefijo `mk_`)
+- `audit_log` - Registro completo de auditoría de cambios en el sistema
 
 ## Rutas de la API
 
@@ -159,6 +160,14 @@ http://localhost:3000/api/v1
 - `POST /api/v1/clients/:clientId/api-keys` - Generar API Key (prefijo `mk_`)
 - `GET /api/v1/clients/:clientId/api-keys` - Listar API Keys del cliente
 - `DELETE /api/v1/clients/:clientId/api-keys/:keyId` - Revocar API Key
+
+#### 📜 Logs de Auditoría y Retención (Solo Admin)
+- `GET /api/v1/audit-logs` - Listar logs de auditoría (filtros: tabla, registro, usuario, acción, fecha)
+- `GET /api/v1/audit-logs/:id` - Obtener entrada específica de auditoría
+- `GET /api/v1/audit-logs/stats/summary` - Resumen de actividad y estadísticas
+- `GET /api/v1/audit-logs/retention/config` - Obtener configuración actual de retención
+- `POST /api/v1/audit-logs/retention/config` - Actualizar configuración de retención (días, hora, habilitado)
+- `POST /api/v1/audit-logs/retention/cleanup` - Disparar limpieza manual de logs antiguos
 
 #### Prueba de Client API Key
 - `GET /api/v1/client-test/test` - Endpoint de prueba (requiere Client API Key)
@@ -269,6 +278,13 @@ JWT_SECRET=tu-secreto-jwt-muy-seguro
 JWT_EXPIRES_IN=1h
 JWT_REFRESH_SECRET=tu-secreto-refresh-muy-seguro
 JWT_REFRESH_EXPIRES_IN=7d
+
+### Retención de Logs de Auditoría
+```env
+AUDIT_LOG_RETENTION_DAYS=180
+AUDIT_CLEANUP_ENABLED=true
+AUDIT_CLEANUP_HOUR=2
+```
 ```
 
 ### Rate Limiting

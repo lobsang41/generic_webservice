@@ -19,6 +19,7 @@ export enum ScopeResource {
     USAGE = 'usage',
     WEBHOOKS = 'webhooks',
     ANALYTICS = 'analytics',
+    AUDIT = 'audit',
 }
 
 /**
@@ -79,6 +80,10 @@ export const SCOPES = {
 
     // Analytics
     ANALYTICS_READ: 'analytics:read' as Scope,
+
+    // Audit
+    AUDIT_READ: 'audit:read' as Scope,
+    AUDIT_ADMIN: 'audit:admin' as Scope,
 } as const;
 
 /**
@@ -129,6 +134,8 @@ export const SCOPE_GROUPS = {
         SCOPES.WEBHOOKS_WRITE,
         SCOPES.WEBHOOKS_DELETE,
         SCOPES.ANALYTICS_READ,
+        SCOPES.AUDIT_READ,
+        SCOPES.AUDIT_ADMIN,
     ],
 
     /**
@@ -255,6 +262,7 @@ export function getScopeDescription(scope: Scope): string {
         usage: 'Uso/Consumo',
         webhooks: 'Webhooks',
         analytics: 'Analíticas',
+        audit: 'Auditoría',
     };
 
     const actionNames: Record<string, string> = {

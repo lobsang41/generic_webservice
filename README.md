@@ -178,6 +178,14 @@ curl -H "X-API-Key: mk_YOUR_CLIENT_API_KEY" \
 - `GET /api/v1/clients/:clientId/api-keys` - List client's API Keys
 - `DELETE /api/v1/clients/:clientId/api-keys/:keyId` - Revoke API Key
 
+#### 📜 Audit logs & Retention (Admin Only)
+- `GET /api/v1/audit-logs` - List audit logs (filters: table, record, user, action, date)
+- `GET /api/v1/audit-logs/:id` - Get specific audit log entry
+- `GET /api/v1/audit-logs/stats/summary` - Activity summary and stats
+- `GET /api/v1/audit-logs/retention/config` - Get current retention settings
+- `POST /api/v1/audit-logs/retention/config` - Update retention settings (days, hour, enabled)
+- `POST /api/v1/audit-logs/retention/cleanup` - Manual trigger for old logs cleanup
+
 #### Client API Key Test Endpoint
 ```bash
 curl -H "X-API-Key: mk_YOUR_CLIENT_KEY" \
@@ -304,6 +312,7 @@ This project currently uses **MySQL** as the primary database:
 - `client_tiers` - Client plans/tiers (Free, Pro, Enterprise)
 - `clients` - SaaS clients/tenants with usage tracking
 - `client_api_keys` - Client API keys (prefix `mk_`)
+- `audit_log` - Comprehensive audit trail of system changes
 
 See `src/shared/database/migrations/001_unified_mysql_schema.sql` for the complete schema.
 
@@ -336,6 +345,11 @@ RABBITMQ_URL=amqp://localhost:5672
 # Security
 JWT_SECRET=your-secret-here
 ENCRYPTION_KEY=your-32-char-key-here
+
+# Audit Log Retention
+AUDIT_LOG_RETENTION_DAYS=180
+AUDIT_CLEANUP_ENABLED=true
+AUDIT_CLEANUP_HOUR=2
 ```
 
 ## Scripts
