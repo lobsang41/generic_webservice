@@ -2,44 +2,34 @@ import { Router, Request, Response } from 'express';
 import { authenticate } from '@middleware/auth';
 import { asyncHandler, NotFoundError, ValidationError } from '@middleware/errorHandler';
 import { requireScope, requireAnyScope } from '@middleware/scopeValidator';
-import { SCOPES, validateScopes } from '@auth/scopes';
+import { SCOPES } from '@auth/scopes';
 import mysqlDB from '@database/mysql';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { logInsert, logUpdate, logDelete, getAuditMetadata } from '@shared/utils/auditLogger';
+import { validateRequest } from '@validation/middleware/validateRequest';
+import {
+    createUserSchema,
+    updateUserSchema,
+    getUserParamsSchema,
+    listUsersQuerySchema,
+} from '@validation/schemas/user.schemas';
 
 const router = Router();
 
 // Create user (admin only)
-router.post('/', authenticate, requireScope(SCOPES.USERS_WRITE), asyncHandler(async (req: Request, res: Response) => {
-    const { email, password, name, role = 'user', scopes } = req.body;
+router.post('/',
+    authenticate,
+    requireScope(SCOPES.USERS_WRITE),
+    validateRequest({ body: createUserSchema }),
+    asyncHandler(async (req: Request, res: Response) => {
+        const { email, password, name, role = 'user', scopes } = req.body;
 
-    // Validations
-    if (!email || !password) {
-        throw new ValidationError('Email and password are required');
-    }
-
-    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-        throw new ValidationError('Invalid email format');
-    }
-
-    if (password.length < 6) {
-        throw new ValidationError('Password must be at least 6 characters');
-    }
-
-    if (role && !['admin', 'user'].includes(role)) {
-        throw new ValidationError('Role must be either "admin" or "user"');
-    }
-
-    // Validate scopes if provided
-    let permissions = null;
-    if (scopes && Array.isArray(scopes) && scopes.length > 0) {
-        const validation = validateScopes(scopes);
-        if (!validation.valid) {
-            throw new ValidationError(`Invalid scopes: ${validation.invalid.join(', ')}`);
+        // Validate scopes if provided and convert to permissions JSON
+        let permissions = null;
+        if (scopes && Array.isArray(scopes) && scopes.length > 0) {
+            permissions = JSON.stringify({ scopes });
         }
-        permissions = JSON.stringify({ scopes });
-    }
 
     // Check if user already exists
     const existing = await mysqlDB.query(
@@ -88,9 +78,13 @@ router.post('/', authenticate, requireScope(SCOPES.USERS_WRITE), asyncHandler(as
 }));
 
 // Get all users (admin only)
-router.get('/', authenticate, requireScope(SCOPES.USERS_READ), asyncHandler(async (req: Request, res: Response) => {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
+router.get('/',
+    authenticate,
+    requireScope(SCOPES.USERS_READ),
+    validateRequest({ query: listUsersQuerySchema }),
+    asyncHandler(async (req: Request, res: Response) => {
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
     const result = await mysqlDB.query(
@@ -118,8 +112,11 @@ router.get('/', authenticate, requireScope(SCOPES.USERS_READ), asyncHandler(asyn
 }));
 
 // Get user by ID
-router.get('/:id', authenticate, asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+router.get('/:id',
+    authenticate,
+    validateRequest({ params: getUserParamsSchema }),
+    asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
 
     // Users can only get their own data unless they're admin
     if (req.user!.userId !== id && req.user!.role !== 'admin') {
@@ -144,9 +141,15 @@ router.get('/:id', authenticate, asyncHandler(async (req: Request, res: Response
 }));
 
 // Update user
-router.patch('/:id', authenticate, asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { name, scopes } = req.body;
+router.patch('/:id',
+    authenticate,
+    validateRequest({
+        params: getUserParamsSchema,
+        body: updateUserSchema,
+    }),
+    asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const { name, scopes } = req.body;
 
     // Users can only update their own data unless they're admin
     if (req.user!.userId !== id && req.user!.role !== 'admin') {
@@ -173,15 +176,6 @@ router.patch('/:id', authenticate, asyncHandler(async (req: Request, res: Respon
 
     // Only admins can update scopes
     if (scopes && req.user!.role === 'admin') {
-        if (!Array.isArray(scopes)) {
-            throw new ValidationError('Scopes must be an array');
-        }
-
-        const validation = validateScopes(scopes);
-        if (!validation.valid) {
-            throw new ValidationError(`Invalid scopes: ${validation.invalid.join(', ')}`);
-        }
-
         updates.push('permissions = ?');
         values.push(JSON.stringify({ scopes }));
     }
@@ -226,8 +220,12 @@ router.patch('/:id', authenticate, asyncHandler(async (req: Request, res: Respon
 }));
 
 // Delete user (admin only)
-router.delete('/:id', authenticate, requireAnyScope([SCOPES.USERS_DELETE, SCOPES.USERS_ADMIN]), asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+router.delete('/:id',
+    authenticate,
+    requireAnyScope([SCOPES.USERS_DELETE, SCOPES.USERS_ADMIN]),
+    validateRequest({ params: getUserParamsSchema }),
+    asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
 
     // Get user data before deleting for audit
     const userData = await mysqlDB.query(

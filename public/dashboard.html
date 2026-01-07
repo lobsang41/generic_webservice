@@ -417,6 +417,7 @@
             <button class="tab active" onclick="switchTab('tiers')">📊 Tiers</button>
             <button class="tab" onclick="switchTab('clients')">🏢 Clientes</button>
             <button class="tab" onclick="switchTab('apikeys')">🔑 API Keys</button>
+            <button class="tab" onclick="switchTab('ipwhitelist')">🛡️ IP Whitelist</button>
             <button class="tab" onclick="switchTab('test')">🧪 Pruebas</button>
             <button class="tab" onclick="switchTab('audit')">📜 Audit Logs</button>
         </div>
@@ -638,6 +639,71 @@
 
             <!-- Lista de logs -->
             <div id="audit-container"></div>
+        </div>
+
+        <div id="ipwhitelist-content" class="tab-content">
+            <div class="config-section">
+                <h2>🛡️ IP Whitelisting - Gestión de IPs Permitidas</h2>
+                <p style="color: #a0a0a0; margin-bottom: 20px;">
+                    Controla qué direcciones IP pueden acceder a los recursos de cada cliente. 
+                    Soporta IPs individuales y rangos CIDR (ej: 192.168.1.0/24).
+                </p>
+
+                <!-- Agregar Nueva IP -->
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3>➕ Agregar IP Permitida</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div class="input-group">
+                            <label for="ipClientId">ID del Cliente</label>
+                            <input type="text" id="ipClientId" placeholder="client-123">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="ipType">Tipo</label>
+                            <select id="ipType" onchange="toggleIPInputs()" style="width: 100%; padding: 12px; background: #1a1a2e; border: 2px solid #2a2a4a; border-radius: 10px; color: #e0e0e0;">
+                                <option value="single">IP Individual</option>
+                                <option value="cidr">Rango CIDR</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="single-ip-input" style="margin-bottom: 15px;">
+                        <div class="input-group">
+                            <label for="ipAddress">Dirección IP</label>
+                            <input type="text" id="ipAddress" placeholder="192.168.1.100">
+                            <small style="color: #888;">Ejemplo: 192.168.1.100 o 2001:db8::1</small>
+                        </div>
+                    </div>
+
+                    <div id="cidr-input" style="display: none; margin-bottom: 15px;">
+                        <div class="input-group">
+                            <label for="cidrRange">Rango CIDR</label>
+                            <input type="text" id="cidrRange" placeholder="192.168.1.0/24">
+                            <small style="color: #888;">Ejemplo: 192.168.1.0/24 (256 IPs) o 10.0.0.0/16 (65,536 IPs)</small>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="ipDescription">Descripción (opcional)</label>
+                        <input type="text" id="ipDescription" placeholder="Oficina principal, VPN, etc.">
+                    </div>
+
+                    <button class="btn btn-success" onclick="addIPWhitelist()">✅ Agregar IP</button>
+                </div>
+
+                <!-- Listar IPs -->
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label for="listIPClientId">ID del Cliente</label>
+                        <input type="text" id="listIPClientId" placeholder="client-123">
+                    </div>
+                    <button class="btn" onclick="loadIPWhitelist()" style="align-self: flex-end;">📋 Cargar IPs</button>
+                </div>
+            </div>
+
+            <div id="ipwhitelist-result"></div>
+            <div id="ipwhitelist-container"></div>
         </div>
     </div>
 
@@ -1912,6 +1978,208 @@
         window.addEventListener('load', () => {
             loadTiers();
         });
+
+        // ============================================================================
+        // IP WHITELISTING FUNCTIONS
+        // ============================================================================
+
+        function toggleIPInputs() {
+            const ipType = document.getElementById('ipType').value;
+            const singleInput = document.getElementById('single-ip-input');
+            const cidrInput = document.getElementById('cidr-input');
+
+            if (ipType === 'single') {
+                singleInput.style.display = 'block';
+                cidrInput.style.display = 'none';
+            } else {
+                singleInput.style.display = 'none';
+                cidrInput.style.display = 'block';
+            }
+        }
+
+        async function addIPWhitelist() {
+            const clientId = document.getElementById('ipClientId').value;
+            const ipType = document.getElementById('ipType').value;
+            const ipAddress = document.getElementById('ipAddress').value;
+            const cidrRange = document.getElementById('cidrRange').value;
+            const description = document.getElementById('ipDescription').value;
+
+            if (!clientId) {
+                alert('Por favor ingresa el ID del cliente');
+                return;
+            }
+
+            const requestBody = {
+                description: description || undefined
+            };
+
+            if (ipType === 'single') {
+                if (!ipAddress) {
+                    alert('Por favor ingresa una dirección IP');
+                    return;
+                }
+                requestBody.ip_address = ipAddress;
+            } else {
+                if (!cidrRange) {
+                    alert('Por favor ingresa un rango CIDR');
+                    return;
+                }
+                requestBody.cidr_range = cidrRange;
+            }
+
+            try {
+                const response = await makeRequest(`/clients/${clientId}/ip-whitelist`, {
+                    method: 'POST',
+                    body: JSON.stringify(requestBody)
+                });
+
+                const entry = response.data.entry;
+                const ipDisplay = entry.ip_address || entry.cidr_range;
+
+                document.getElementById('ipwhitelist-result').innerHTML = `
+                    <div class="alert alert-success" style="margin-top: 20px;">
+                        <h4>✅ IP Agregada Exitosamente</h4>
+                        <div class="field">
+                            <div class="field-label">IP/CIDR</div>
+                            <div class="field-value"><code>${ipDisplay}</code></div>
+                        </div>
+                        ${entry.description ? `
+                            <div class="field">
+                                <div class="field-label">Descripción</div>
+                                <div class="field-value">${entry.description}</div>
+                            </div>
+                        ` : ''}
+                        <div class="field">
+                            <div class="field-label">ID</div>
+                            <div class="field-value"><code>${entry.id}</code></div>
+                        </div>
+                    </div>
+                `;
+
+                // Limpiar formulario
+                document.getElementById('ipAddress').value = '';
+                document.getElementById('cidrRange').value = '';
+                document.getElementById('ipDescription').value = '';
+
+                // Recargar lista si está el mismo cliente
+                const listClientId = document.getElementById('listIPClientId').value;
+                if (listClientId === clientId) {
+                    loadIPWhitelist();
+                }
+            } catch (error) {
+                document.getElementById('ipwhitelist-result').innerHTML = `
+                    <div class="alert alert-error" style="margin-top: 20px;">
+                        <h4>❌ Error al Agregar IP</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadIPWhitelist() {
+            const clientId = document.getElementById('listIPClientId').value;
+
+            if (!clientId) {
+                alert('Por favor ingresa el ID del cliente');
+                return;
+            }
+
+            showLoading('ipwhitelist-container');
+
+            try {
+                const response = await makeRequest(`/clients/${clientId}/ip-whitelist`);
+                const entries = response.data.entries;
+
+                if (!entries || entries.length === 0) {
+                    showEmpty('ipwhitelist-container', 'Este cliente no tiene IPs en whitelist');
+                    return;
+                }
+
+                const container = document.getElementById('ipwhitelist-container');
+                container.innerHTML = `
+                    <div class="config-section">
+                        <h3>📋 IPs Permitidas (${entries.length})</h3>
+                        <div class="data-grid">
+                            ${entries.map(entry => {
+                                const ipDisplay = entry.ip_address || entry.cidr_range;
+                                const ipType = entry.ip_address ? 'IP Individual' : 'Rango CIDR';
+                                const date = new Date(entry.created_at).toLocaleString('es-ES');
+
+                                return `
+                                    <div class="data-card">
+                                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                                            <div>
+                                                <span class="badge badge-success">${ipType}</span>
+                                                ${entry.is_active ? 
+                                                    '<span class="badge badge-info">Activa</span>' : 
+                                                    '<span class="badge" style="background: #666;">Inactiva</span>'
+                                                }
+                                            </div>
+                                            <button class="btn btn-error btn-small" onclick="removeIPWhitelist('${clientId}', '${entry.id}')">
+                                                🗑️ Eliminar
+                                            </button>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">🌐 ${ipType}</div>
+                                            <div class="field-value"><code style="font-size: 1.1em;">${ipDisplay}</code></div>
+                                        </div>
+
+                                        ${entry.description ? `
+                                            <div class="field">
+                                                <div class="field-label">📝 Descripción</div>
+                                                <div class="field-value">${entry.description}</div>
+                                            </div>
+                                        ` : ''}
+
+                                        <div class="field">
+                                            <div class="field-label">🆔 ID</div>
+                                            <div class="field-value"><code>${entry.id}</code></div>
+                                        </div>
+
+                                        ${entry.created_by ? `
+                                            <div class="field">
+                                                <div class="field-label">👤 Creado por</div>
+                                                <div class="field-value">${entry.created_by}</div>
+                                            </div>
+                                        ` : ''}
+
+                                        <div class="field">
+                                            <div class="field-label">📅 Fecha de Creación</div>
+                                            <div class="field-value">${date}</div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('ipwhitelist-container').innerHTML = `
+                    <div class="alert alert-error">
+                        <h4>❌ Error al Cargar IPs</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function removeIPWhitelist(clientId, entryId) {
+            if (!confirm('¿Estás seguro de que deseas eliminar esta IP de la whitelist?')) {
+                return;
+            }
+
+            try {
+                await makeRequest(`/clients/${clientId}/ip-whitelist/${entryId}`, {
+                    method: 'DELETE'
+                });
+
+                alert('✅ IP eliminada exitosamente');
+                loadIPWhitelist();
+            } catch (error) {
+                alert(`❌ Error al eliminar IP: ${error.message}`);
+            }
+        }
     </script>
 </body>
 </html>

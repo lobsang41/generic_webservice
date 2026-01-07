@@ -8,21 +8,23 @@ import { asyncHandler, ValidationError, AuthenticationError } from '@middleware/
 import mysqlDB from '@database/mysql';
 import { nanoid } from 'nanoid';
 import { authenticationAttempts } from '@monitoring/prometheus';
+import { validateRequest } from '@validation/middleware/validateRequest';
+import {
+    registerSchema,
+    loginSchema,
+    refreshSchema,
+    createApiKeySchema,
+    revokeApiKeyParamsSchema,
+} from '@validation/schemas/auth.schemas';
 
 const router = Router();
 
 // Register new user
-router.post('/register', strictRateLimiter, asyncHandler(async (req: Request, res: Response) => {
-    const { email, password, name } = req.body;
-
-    // Validation
-    if (!email || !password || !name) {
-        throw new ValidationError('Email, password, and name are required');
-    }
-
-    if (password.length < 8) {
-        throw new ValidationError('Password must be at least 8 characters');
-    }
+router.post('/register',
+    strictRateLimiter,
+    validateRequest({ body: registerSchema }),
+    asyncHandler(async (req: Request, res: Response) => {
+        const { email, password, name } = req.body;
 
     // Check if user exists
     const existing = await mysqlDB.query(
@@ -65,19 +67,11 @@ router.post('/register', strictRateLimiter, asyncHandler(async (req: Request, re
 }));
 
 // Login
-router.post('/login', strictRateLimiter, asyncHandler(async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-
-    // Validation
-    if (!email || !password) {
-        throw new ValidationError('Email and password are required');
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        throw new ValidationError('Invalid email format');
-    }
+router.post('/login',
+    strictRateLimiter,
+    validateRequest({ body: loginSchema }),
+    asyncHandler(async (req: Request, res: Response) => {
+        const { email, password } = req.body;
 
     // Find user
     const result = await mysqlDB.query(
@@ -124,12 +118,10 @@ router.post('/login', strictRateLimiter, asyncHandler(async (req: Request, res: 
 }));
 
 // Refresh token
-router.post('/refresh', asyncHandler(async (req: Request, res: Response) => {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-        throw new ValidationError('Refresh token is required');
-    }
+router.post('/refresh',
+    validateRequest({ body: refreshSchema }),
+    asyncHandler(async (req: Request, res: Response) => {
+        const { refreshToken } = req.body;
 
     const newAccessToken = await jwtService.refreshAccessToken(refreshToken);
 
@@ -157,12 +149,11 @@ router.post('/logout', authenticate, asyncHandler(async (req: Request, res: Resp
 }));
 
 // Generate API Key
-router.post('/api-key', authenticate, asyncHandler(async (req: Request, res: Response) => {
-    const { name, expiresInDays } = req.body;
-
-    if (!name) {
-        throw new ValidationError('API key name is required');
-    }
+router.post('/api-key',
+    authenticate,
+    validateRequest({ body: createApiKeySchema }),
+    asyncHandler(async (req: Request, res: Response) => {
+        const { name, expiresInDays } = req.body;
 
     const { key, apiKey } = await apiKeyService.generateAPIKey(
         req.user!.userId,
@@ -196,8 +187,11 @@ router.get('/api-keys', authenticate, asyncHandler(async (req: Request, res: Res
 }));
 
 // Revoke API Key
-router.delete('/api-key/:id', authenticate, asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+router.delete('/api-key/:id',
+    authenticate,
+    validateRequest({ params: revokeApiKeyParamsSchema }),
+    asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
     const revoked = await apiKeyService.revokeAPIKey(id, req.user!.userId);
 
     if (!revoked) {

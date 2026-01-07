@@ -14,8 +14,11 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-    constructor(message: string) {
+    details?: Array<{ field: string; message: string; code: string }>;
+
+    constructor(message: string, details?: Array<{ field: string; message: string; code: string }>) {
         super(message, 400);
+        this.details = details;
     }
 }
 
@@ -110,6 +113,9 @@ export const errorHandler = (
         error: {
             message,
             statusCode,
+            ...(err instanceof ValidationError && err.details && {
+                details: err.details,
+            }),
             ...(process.env.NODE_ENV === 'development' && {
                 stack: err.stack,
                 isOperational,

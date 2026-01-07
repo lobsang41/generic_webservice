@@ -292,7 +292,8 @@ Pre-configured dashboards show:
 - 🛡️ **Rate Limiting** - Redis-backed rate limiting (public/authenticated tiers)
 - 🔒 **Encryption** - AES-256-GCM for sensitive data
 - 🚨 **RBAC** - Role-based access control
-- 📋 **Input Validation** - Request validation with Joi
+- ✅ **Input Validation** - Zod schemas for all endpoints with standardized errors
+- 📋 **Request Validation** - Comprehensive validation of body, query, params, and headers
 - 🔐 **Helmet** - Security headers
 - 🌍 **CORS** - Configurable cross-origin policies
 

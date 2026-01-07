@@ -5,6 +5,15 @@ import { clientService } from '@services/clientService';
 import { requireScope, requireAnyScope } from '@middleware/scopeValidator';
 import { SCOPES } from '@auth/scopes';
 import { getAuditMetadata } from '@shared/utils/auditLogger';
+import { validateRequest } from '@validation/middleware/validateRequest';
+import {
+    createClientSchema,
+    updateClientSchema,
+    getClientParamsSchema,
+    listClientsQuerySchema,
+    getClientUsageParamsSchema,
+    resetUsageParamsSchema,
+} from '@validation/schemas/client.schemas';
 
 const router = Router();
 
@@ -20,25 +29,9 @@ const router = Router();
 router.post('/', 
     authenticate, 
     requireScope(SCOPES.CLIENTS_WRITE),
+    validateRequest({ body: createClientSchema }),
     asyncHandler(async (req: Request, res: Response) => {
         const { name, slug, tier_id, contact_email, contact_name, metadata } = req.body;
-
-        // Validaciones
-        if (!name || !slug || !tier_id || !contact_email || !contact_name) {
-            throw new ValidationError('Missing required fields: name, slug, tier_id, contact_email, contact_name');
-        }
-
-        // Validar formato de email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(contact_email)) {
-            throw new ValidationError('Invalid email format');
-        }
-
-        // Validar formato de slug (solo letras, números y guiones)
-        const slugRegex = /^[a-z0-9-]+$/;
-        if (!slugRegex.test(slug)) {
-            throw new ValidationError('Invalid slug format. Use only lowercase letters, numbers, and hyphens');
-        }
 
         // Verificar que el slug no esté en uso
         const existingClient = await clientService.getClientBySlug(slug);
@@ -71,6 +64,7 @@ router.post('/',
 router.get('/', 
     authenticate, 
     requireScope(SCOPES.CLIENTS_READ),
+    validateRequest({ query: listClientsQuerySchema }),
     asyncHandler(async (req: Request, res: Response) => {
         const { page, limit, tier_id, is_active } = req.query;
 
@@ -96,6 +90,7 @@ router.get('/',
 router.get('/:id', 
     authenticate, 
     requireScope(SCOPES.CLIENTS_READ),
+    validateRequest({ params: getClientParamsSchema }),
     asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
 
@@ -119,17 +114,13 @@ router.get('/:id',
 router.patch('/:id', 
     authenticate, 
     requireScope(SCOPES.CLIENTS_WRITE),
+    validateRequest({
+        params: getClientParamsSchema,
+        body: updateClientSchema,
+    }),
     asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
         const { name, tier_id, contact_email, contact_name, metadata, is_active } = req.body;
-
-        // Validar email si se proporciona
-        if (contact_email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(contact_email)) {
-                throw new ValidationError('Invalid email format');
-            }
-        }
 
         const client = await clientService.updateClient(id, {
             name,
@@ -160,6 +151,7 @@ router.patch('/:id',
 router.delete('/:id', 
     authenticate, 
     requireAnyScope([SCOPES.CLIENTS_DELETE, SCOPES.CLIENTS_ADMIN]),
+    validateRequest({ params: getClientParamsSchema }),
     asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
 
@@ -185,6 +177,7 @@ router.delete('/:id',
 router.get('/:id/usage', 
     authenticate, 
     requireAnyScope([SCOPES.USAGE_READ, SCOPES.CLIENTS_ADMIN]),
+    validateRequest({ params: getClientUsageParamsSchema }),
     asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
 
@@ -208,6 +201,7 @@ router.get('/:id/usage',
 router.post('/:id/reset-usage', 
     authenticate, 
     requireAnyScope([SCOPES.USAGE_WRITE, SCOPES.CLIENTS_ADMIN]),
+    validateRequest({ params: resetUsageParamsSchema }),
     asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
 

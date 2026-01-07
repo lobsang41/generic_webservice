@@ -60,6 +60,9 @@
             ],
             "@cloud/*": [
                 "src/shared/cloud/*"
+            ],
+            "@validation/*": [
+                "src/shared/validation/*"
             ]
         }
     },

@@ -417,7 +417,9 @@
             <button class="tab active" onclick="switchTab('tiers')">📊 Tiers</button>
             <button class="tab" onclick="switchTab('clients')">🏢 Clientes</button>
             <button class="tab" onclick="switchTab('apikeys')">🔑 API Keys</button>
+            <button class="tab" onclick="switchTab('ipwhitelist')">🛡️ IP Whitelist</button>
             <button class="tab" onclick="switchTab('test')">🧪 Pruebas</button>
+            <button class="tab" onclick="switchTab('audit')">📜 Audit Logs</button>
         </div>
 
         <div id="users-content" class="tab-content">
@@ -551,6 +553,158 @@
             </div>
             <div id="test-container"></div>
         </div>
+
+        <div id="audit-content" class="tab-content">
+            <div class="config-section">
+                <h2>📜 Audit Logs - Registro de Cambios</h2>
+                
+                <!-- Filtros -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="input-group">
+                        <label for="auditTableFilter">Tabla</label>
+                        <select id="auditTableFilter" style="width: 100%; padding: 12px; background: #1a1a2e; border: 2px solid #2a2a4a; border-radius: 10px; color: #e0e0e0;">
+                            <option value="">Todas</option>
+                            <option value="users">users</option>
+                            <option value="clients">clients</option>
+                            <option value="api_keys">api_keys</option>
+                            <option value="client_api_keys">client_api_keys</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="auditActionFilter">Acción</label>
+                        <select id="auditActionFilter" style="width: 100%; padding: 12px; background: #1a1a2e; border: 2px solid #2a2a4a; border-radius: 10px; color: #e0e0e0;">
+                            <option value="">Todas</option>
+                            <option value="INSERT">INSERT</option>
+                            <option value="UPDATE">UPDATE</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="auditUserFilter">Usuario</label>
+                        <input type="text" id="auditUserFilter" placeholder="email@example.com">
+                    </div>
+                    <div class="input-group">
+                        <label for="auditRecordFilter">Record ID</label>
+                        <input type="text" id="auditRecordFilter" placeholder="user-123">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button class="btn" onclick="loadAuditLogs()">📋 Cargar Logs</button>
+                    <button class="btn btn-success" onclick="loadAuditStats()">📊 Ver Estadísticas</button>
+                    <button class="btn btn-secondary" onclick="clearAuditFilters()">🔄 Limpiar Filtros</button>
+                    <button class="btn" onclick="exportAuditLogs('json')" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">📥 Exportar JSON</button>
+                    <button class="btn" onclick="exportAuditLogs('csv')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">📥 Exportar CSV</button>
+                </div>
+            </div>
+
+            <!-- Estadísticas -->
+            <div id="audit-stats-container" style="display: none; margin-bottom: 20px;"></div>
+
+            <!-- Configuración de Retención (Solo Admin) -->
+            <div id="audit-retention-config" class="config-section" style="margin-bottom: 20px;">
+                <h3>⚙️ Configuración de Retención y Limpieza</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="input-group">
+                        <label for="retentionDaysInput">Días de Retención</label>
+                        <input type="number" id="retentionDaysInput" min="30" max="730" placeholder="180">
+                        <small style="color: #888;">Logs más antiguos que estos días serán eliminados.</small>
+                    </div>
+                    <div class="input-group">
+                        <label for="cleanupHourInput">Hora de Limpieza (0-23)</label>
+                        <input type="number" id="cleanupHourInput" min="0" max="23" placeholder="2">
+                        <small style="color: #888;">Hora local en la que se ejecuta el proceso automático.</small>
+                    </div>
+                    <div class="input-group" style="display: flex; flex-direction: column; justify-content: center;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="cleanupEnabledInput" style="width: auto;">
+                            Habilitar Limpieza Automática
+                        </label>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <button class="btn btn-success" onclick="updateRetentionConfigUI()">💾 Guardar Configuración</button>
+                    <button class="btn btn-error" onclick="runManualCleanupUI()">🗑️ Limpiar Ahora (Manual)</button>
+                    <div id="retention-status-msg" style="color: #a0a0a0; font-size: 0.9em;"></div>
+                </div>
+
+                <div id="cleanup-stats-panel" style="margin-top: 15px; padding: 10px; background: #0f0f1e; border-radius: 5px; display: none;">
+                    <p style="margin: 0; color: #888; font-size: 0.85em;">
+                        <strong>Última Limpieza:</strong> <span id="lastCleanupDate">-</span> | 
+                        <strong>Registros Eliminados:</strong> <span id="lastCleanupCount">0</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Lista de logs -->
+            <div id="audit-container"></div>
+        </div>
+
+        <div id="ipwhitelist-content" class="tab-content">
+            <div class="config-section">
+                <h2>🛡️ IP Whitelisting - Gestión de IPs Permitidas</h2>
+                <p style="color: #a0a0a0; margin-bottom: 20px;">
+                    Controla qué direcciones IP pueden acceder a los recursos de cada cliente. 
+                    Soporta IPs individuales y rangos CIDR (ej: 192.168.1.0/24).
+                </p>
+
+                <!-- Agregar Nueva IP -->
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3>➕ Agregar IP Permitida</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div class="input-group">
+                            <label for="ipClientId">ID del Cliente</label>
+                            <input type="text" id="ipClientId" placeholder="client-123">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="ipType">Tipo</label>
+                            <select id="ipType" onchange="toggleIPInputs()" style="width: 100%; padding: 12px; background: #1a1a2e; border: 2px solid #2a2a4a; border-radius: 10px; color: #e0e0e0;">
+                                <option value="single">IP Individual</option>
+                                <option value="cidr">Rango CIDR</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="single-ip-input" style="margin-bottom: 15px;">
+                        <div class="input-group">
+                            <label for="ipAddress">Dirección IP</label>
+                            <input type="text" id="ipAddress" placeholder="192.168.1.100">
+                            <small style="color: #888;">Ejemplo: 192.168.1.100 o 2001:db8::1</small>
+                        </div>
+                    </div>
+
+                    <div id="cidr-input" style="display: none; margin-bottom: 15px;">
+                        <div class="input-group">
+                            <label for="cidrRange">Rango CIDR</label>
+                            <input type="text" id="cidrRange" placeholder="192.168.1.0/24">
+                            <small style="color: #888;">Ejemplo: 192.168.1.0/24 (256 IPs) o 10.0.0.0/16 (65,536 IPs)</small>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="ipDescription">Descripción (opcional)</label>
+                        <input type="text" id="ipDescription" placeholder="Oficina principal, VPN, etc.">
+                    </div>
+
+                    <button class="btn btn-success" onclick="addIPWhitelist()">✅ Agregar IP</button>
+                </div>
+
+                <!-- Listar IPs -->
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label for="listIPClientId">ID del Cliente</label>
+                        <input type="text" id="listIPClientId" placeholder="client-123">
+                    </div>
+                    <button class="btn" onclick="loadIPWhitelist()" style="align-self: flex-end;">📋 Cargar IPs</button>
+                </div>
+            </div>
+
+            <div id="ipwhitelist-result"></div>
+            <div id="ipwhitelist-container"></div>
+        </div>
     </div>
 
     <script>
@@ -572,7 +726,22 @@
             });
             
             document.getElementById(tabName + '-content').classList.add('active');
-            event.target.classList.add('active');
+            
+            // Buscar y activar el botón correcto si el evento existe
+            if (event && event.target && event.target.classList.contains('tab')) {
+                event.target.classList.add('active');
+            } else {
+                // Fallback: Activar por atributo onclick
+                document.querySelectorAll('.tab').forEach(tab => {
+                    if (tab.getAttribute('onclick').includes(`'${tabName}'`)) {
+                        tab.classList.add('active');
+                    }
+                });
+            }
+
+            if (tabName === 'audit' && typeof loadRetentionConfigUI === 'function') {
+                loadRetentionConfigUI();
+            }
         }
 
         function showLoading(containerId) {
@@ -1388,6 +1557,406 @@
             document.getElementById('apikeys-container').innerHTML = '';
             document.getElementById('apikeys-result').innerHTML = '';
             document.getElementById('test-container').innerHTML = '';
+        }
+
+        // ============================================================================
+        // IP WHITELISTING FUNCTIONS
+        // ============================================================================
+
+        function toggleIPInputs() {
+            const ipType = document.getElementById('ipType').value;
+            const singleInput = document.getElementById('single-ip-input');
+            const cidrInput = document.getElementById('cidr-input');
+
+            if (ipType === 'single') {
+                singleInput.style.display = 'block';
+                cidrInput.style.display = 'none';
+            } else {
+                singleInput.style.display = 'none';
+                cidrInput.style.display = 'block';
+            }
+        }
+
+        async function addIPWhitelist() {
+            const clientId = document.getElementById('ipClientId').value;
+            const ipType = document.getElementById('ipType').value;
+            const ipAddress = document.getElementById('ipAddress').value;
+            const cidrRange = document.getElementById('cidrRange').value;
+            const description = document.getElementById('ipDescription').value;
+
+            if (!clientId) {
+                alert('Por favor ingresa el ID del cliente');
+                return;
+            }
+
+            const requestBody = {
+                description: description || undefined
+            };
+
+            if (ipType === 'single') {
+                if (!ipAddress) {
+                    alert('Por favor ingresa una dirección IP');
+                    return;
+                }
+                requestBody.ip_address = ipAddress;
+            } else {
+                if (!cidrRange) {
+                    alert('Por favor ingresa un rango CIDR');
+                    return;
+                }
+                requestBody.cidr_range = cidrRange;
+            }
+
+            try {
+                const response = await makeRequest(`/clients/${clientId}/ip-whitelist`, {
+                    method: 'POST',
+                    body: JSON.stringify(requestBody)
+                });
+
+                const entry = response.data.entry;
+                const ipDisplay = entry.ip_address || entry.cidr_range;
+
+                document.getElementById('ipwhitelist-result').innerHTML = `
+                    <div class="alert alert-success" style="margin-top: 20px;">
+                        <h4>✅ IP Agregada Exitosamente</h4>
+                        <div class="field">
+                            <div class="field-label">IP/CIDR</div>
+                            <div class="field-value"><code>${ipDisplay}</code></div>
+                        </div>
+                        ${entry.description ? `
+                            <div class="field">
+                                <div class="field-label">Descripción</div>
+                                <div class="field-value">${entry.description}</div>
+                            </div>
+                        ` : ''}
+                        <div class="field">
+                            <div class="field-label">ID</div>
+                            <div class="field-value"><code>${entry.id}</code></div>
+                        </div>
+                    </div>
+                `;
+
+                // Limpiar formulario
+                document.getElementById('ipAddress').value = '';
+                document.getElementById('cidrRange').value = '';
+                document.getElementById('ipDescription').value = '';
+
+                // Recargar lista si está el mismo cliente
+                const listClientId = document.getElementById('listIPClientId').value;
+                if (listClientId === clientId) {
+                    loadIPWhitelist();
+                }
+            } catch (error) {
+                document.getElementById('ipwhitelist-result').innerHTML = `
+                    <div class="alert alert-error" style="margin-top: 20px;">
+                        <h4>❌ Error al Agregar IP</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadIPWhitelist() {
+            const clientId = document.getElementById('listIPClientId').value;
+
+            if (!clientId) {
+                alert('Por favor ingresa el ID del cliente');
+                return;
+            }
+
+            showLoading('ipwhitelist-container');
+
+            try {
+                const response = await makeRequest(`/clients/${clientId}/ip-whitelist`);
+                const entries = response.data.entries;
+
+                if (!entries || entries.length === 0) {
+                    showEmpty('ipwhitelist-container', 'Este cliente no tiene IPs en whitelist');
+                    return;
+                }
+
+                const container = document.getElementById('ipwhitelist-container');
+                container.innerHTML = `
+                    <div class="config-section">
+                        <h3>📋 IPs Permitidas (${entries.length})</h3>
+                        <div class="data-grid">
+                            ${entries.map(entry => {
+                                const ipDisplay = entry.ip_address || entry.cidr_range;
+                                const ipType = entry.ip_address ? 'IP Individual' : 'Rango CIDR';
+                                const date = new Date(entry.created_at).toLocaleString('es-ES');
+
+                                return `
+                                    <div class="data-card">
+                                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                                            <div>
+                                                <span class="badge badge-success">${ipType}</span>
+                                                ${entry.is_active ? 
+                                                    '<span class="badge badge-info">Activa</span>' : 
+                                                    '<span class="badge" style="background: #666;">Inactiva</span>'
+                                                }
+                                            </div>
+                                            <button class="btn btn-error btn-small" onclick="removeIPWhitelist('${clientId}', '${entry.id}')">
+                                                🗑️ Eliminar
+                                            </button>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">🌐 ${ipType}</div>
+                                            <div class="field-value"><code style="font-size: 1.1em;">${ipDisplay}</code></div>
+                                        </div>
+
+                                        ${entry.description ? `
+                                            <div class="field">
+                                                <div class="field-label">📝 Descripción</div>
+                                                <div class="field-value">${entry.description}</div>
+                                            </div>
+                                        ` : ''}
+
+                                        <div class="field">
+                                            <div class="field-label">🆔 ID</div>
+                                            <div class="field-value"><code>${entry.id}</code></div>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">📅 Fecha de Creación</div>
+                                            <div class="field-value">${date}</div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('ipwhitelist-container').innerHTML = `
+                    <div class="alert alert-error">
+                        <h4>❌ Error al Cargar IPs</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function removeIPWhitelist(clientId, entryId) {
+            if (!confirm('¿Estás seguro de que deseas eliminar esta IP de la whitelist?')) {
+                return;
+            }
+
+            try {
+                await makeRequest(`/clients/${clientId}/ip-whitelist/${entryId}`, {
+                    method: 'DELETE'
+                });
+
+                alert('✅ IP eliminada exitosamente');
+                loadIPWhitelist();
+            } catch (error) {
+                alert(`❌ Error al eliminar IP: ${error.message}`);
+            }
+        }
+
+        // ============================================================================
+        // AUDIT LOGS FUNCTIONS
+        // ============================================================================
+
+        async function loadAuditLogs(page = 1) {
+            showLoading('audit-container');
+            
+            const table = document.getElementById('auditTableFilter').value;
+            const action = document.getElementById('auditActionFilter').value;
+            const user = document.getElementById('auditUserFilter').value;
+            const recordId = document.getElementById('auditRecordFilter').value;
+            
+            let queryParams = new URLSearchParams({
+                page,
+                limit: 10
+            });
+            
+            if (table) queryParams.append('table', table);
+            if (action) queryParams.append('action', action);
+            if (user) queryParams.append('user', user);
+            if (recordId) queryParams.append('record_id', recordId);
+            
+            try {
+                const response = await makeRequest(`/audit-logs?${queryParams.toString()}`);
+                const logs = response.data.logs;
+                const pagination = response.data.pagination;
+                
+                if (!logs || logs.length === 0) {
+                    showEmpty('audit-container', 'No se encontraron registros de auditoría');
+                    return;
+                }
+                
+                let html = '<div class="data-grid">';
+                
+                logs.forEach(log => {
+                    const date = new Date(log.performed_at).toLocaleString();
+                    const actionBadge = log.action === 'INSERT' ? 'badge-success' : (log.action === 'UPDATE' ? 'badge-info' : 'badge-danger');
+                    
+                    html += `
+                        <div class="data-card" style="border-left-color: ${log.action === 'INSERT' ? '#38ef7d' : (log.action === 'UPDATE' ? '#667eea' : '#eb3349')}">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <div>
+                                    <span class="badge badge-info">${log.table_name}</span>
+                                    <span class="badge ${actionBadge}">${log.action}</span>
+                                </div>
+                                <span style="color: #888; font-size: 0.85em;">${date}</span>
+                            </div>
+                            
+                            <div class="field">
+                                <div class="field-label">Record ID</div>
+                                <div class="field-value"><code>${log.record_id}</code></div>
+                            </div>
+                            
+                            ${log.changed_by ? `
+                                <div class="field">
+                                    <div class="field-label">👤 Usuario</div>
+                                    <div class="field-value">${log.changed_by}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                
+                // Paginación simple
+                if (pagination.totalPages > 1) {
+                    html += `
+                        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+                            <button class="btn btn-small" ${page <= 1 ? 'disabled' : ''} onclick="loadAuditLogs(${page - 1})">Anterior</button>
+                            <span style="color: #a0a0a0; padding: 10px;">Página ${page} de ${pagination.totalPages}</span>
+                            <button class="btn btn-small" ${page >= pagination.totalPages ? 'disabled' : ''} onclick="loadAuditLogs(${page + 1})">Siguiente</button>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('audit-container').innerHTML = html;
+            } catch (error) {
+                document.getElementById('audit-container').innerHTML = `
+                    <div class="alert alert-error">
+                        <h4>❌ Error al Cargar Logs</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function exportAuditLogs(format) {
+            const table = document.getElementById('auditTableFilter').value;
+            const action = document.getElementById('auditActionFilter').value;
+            
+            let queryParams = new URLSearchParams({ format });
+            if (table) queryParams.append('table', table);
+            if (action) queryParams.append('action', action);
+            
+            window.open(`${getApiUrl()}/audit-logs/export/file?${queryParams.toString()}&token=${getAuthToken()}`, '_blank');
+        }
+
+        function clearAuditFilters() {
+            document.getElementById('auditTableFilter').value = '';
+            document.getElementById('auditActionFilter').value = '';
+            document.getElementById('auditUserFilter').value = '';
+            document.getElementById('auditRecordFilter').value = '';
+            loadAuditLogs();
+        }
+
+        async function loadRetentionConfigUI() {
+            try {
+                const response = await makeRequest('/audit-logs/retention/config');
+                const config = response.data.config;
+                
+                document.getElementById('retentionDaysInput').value = config.retention_days;
+                document.getElementById('cleanupHourInput').value = config.cleanup_hour;
+                document.getElementById('cleanupEnabledInput').checked = config.cleanup_enabled === 1;
+                
+                const statsPanel = document.getElementById('cleanup-stats-panel');
+                if (config.last_cleanup_at) {
+                    statsPanel.style.display = 'block';
+                    document.getElementById('lastCleanupDate').innerText = new Date(config.last_cleanup_at).toLocaleString();
+                    document.getElementById('lastCleanupCount').innerText = config.last_cleanup_count || 0;
+                }
+            } catch (error) {
+                console.error('Error al cargar config de retención:', error);
+            }
+        }
+
+        async function updateRetentionConfigUI() {
+            const days = parseInt(document.getElementById('retentionDaysInput').value);
+            const hour = parseInt(document.getElementById('cleanupHourInput').value);
+            const enabled = document.getElementById('cleanupEnabledInput').checked;
+            
+            try {
+                await makeRequest('/audit-logs/retention/config', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        retention_days: days,
+                        cleanup_hour: hour,
+                        cleanup_enabled: enabled
+                    })
+                });
+                
+                const msg = document.getElementById('retention-status-msg');
+                msg.innerText = '✅ Configuración guardada';
+                msg.style.color = '#38ef7d';
+                setTimeout(() => msg.innerText = '', 3000);
+            } catch (error) {
+                alert('Error al guardar configuración: ' + error.message);
+            }
+        }
+
+        async function runManualCleanupUI() {
+            if (!confirm('¿Estás seguro de que quieres ejecutar la limpieza manual ahora? Se eliminarán registros antiguos.')) {
+                return;
+            }
+            
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = '⌛ Limpiando...';
+            btn.disabled = true;
+            
+            try {
+                const response = await makeRequest('/audit-logs/retention/cleanup', {
+                    method: 'POST'
+                });
+                
+                alert(`✅ Limpieza completada exitosamente.\nRegistros eliminados: ${response.data.deletedCount}`);
+                loadRetentionConfigUI();
+            } catch (error) {
+                alert('Error al ejecutar limpieza: ' + error.message);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function loadAuditStats() {
+            const statsContainer = document.getElementById('audit-stats-container');
+            const isVisible = statsContainer.style.display === 'block';
+            
+            if (isVisible) {
+                statsContainer.style.display = 'none';
+                return;
+            }
+            
+            statsContainer.style.display = 'block';
+            statsContainer.innerHTML = '<div class="loading"></div>';
+            
+            try {
+                const response = await makeRequest('/audit-logs/stats/summary?days=30');
+                const stats = response.data;
+                
+                statsContainer.innerHTML = `
+                    <div class="config-section" style="background: rgba(102, 126, 234, 0.05);">
+                        <h4>📊 Resumen de Actividad (30 días)</h4>
+                        <div style="display: flex; gap: 20px; align-items: center; margin-top: 10px;">
+                            <div style="font-size: 2em; font-weight: bold; color: #667eea;">${stats.total_changes.toLocaleString()}</div>
+                            <div style="color: #a0a0a0;">cambios registrados en total</div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                statsContainer.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`;
+            }
         }
 
         // Auto-load tiers on page load

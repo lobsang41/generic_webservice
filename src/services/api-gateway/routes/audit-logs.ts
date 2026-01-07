@@ -10,6 +10,11 @@ import {
     cleanupOldLogs,
 } from '@services/auditRetentionService';
 import { restartAuditCleanupJob } from '@shared/jobs/auditCleanupJob';
+import { validateRequest } from '@validation/middleware/validateRequest';
+import {
+    listAuditLogsQuerySchema,
+    retentionConfigSchema,
+} from '@validation/schemas/audit.schemas';
 
 const router = Router();
 
@@ -21,6 +26,7 @@ const router = Router();
 router.get('/', 
     authenticate, 
     requireScope(SCOPES.AUDIT_READ),
+    validateRequest({ query: listAuditLogsQuerySchema }),
     asyncHandler(async (req: Request, res: Response) => {
         const { 
             table_name, 
@@ -245,6 +251,7 @@ router.get('/retention/config',
 router.post('/retention/config',
     authenticate,
     requireScope(SCOPES.AUDIT_ADMIN),
+    validateRequest({ body: retentionConfigSchema }),
     asyncHandler(async (req: Request, res: Response) => {
         const { retentionDays, cleanupEnabled, cleanupHour } = req.body;
         
