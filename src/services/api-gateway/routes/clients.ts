@@ -172,11 +172,17 @@ router.delete('/:id',
 /**
  * GET /api/v1/clients/:id/usage
  * Obtener estadísticas de uso del cliente
- * Requiere: usage:read O clients:admin
+ * Requiere: usage:read O clients:admin O ser admin
  */
 router.get('/:id/usage', 
     authenticate, 
-    requireAnyScope([SCOPES.USAGE_READ, SCOPES.CLIENTS_ADMIN]),
+    // Los admins tienen acceso automático, otros usuarios necesitan scopes
+    (req, res, next) => {
+        if (req.user?.role === 'admin') {
+            return next();
+        }
+        return requireAnyScope([SCOPES.USAGE_READ, SCOPES.CLIENTS_ADMIN])(req, res, next);
+    },
     validateRequest({ params: getClientUsageParamsSchema }),
     asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
@@ -196,11 +202,17 @@ router.get('/:id/usage',
 /**
  * POST /api/v1/clients/:id/reset-usage
  * Resetear uso mensual del cliente
- * Requiere: usage:write O clients:admin
+ * Requiere: usage:write O clients:admin O ser admin
  */
 router.post('/:id/reset-usage', 
     authenticate, 
-    requireAnyScope([SCOPES.USAGE_WRITE, SCOPES.CLIENTS_ADMIN]),
+    // Los admins tienen acceso automático, otros usuarios necesitan scopes
+    (req, res, next) => {
+        if (req.user?.role === 'admin') {
+            return next();
+        }
+        return requireAnyScope([SCOPES.USAGE_WRITE, SCOPES.CLIENTS_ADMIN])(req, res, next);
+    },
     validateRequest({ params: resetUsageParamsSchema }),
     asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;

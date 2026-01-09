@@ -7,6 +7,8 @@ import clientApiKeyRoutes from './client-api-keys';
 import clientTestRoutes from './client-test';
 import auditLogRoutes from './audit-logs';
 import ipWhitelistRoutes from './ip-whitelist';
+import jobsRoutes from './jobs';
+import webhooksRoutes from './webhooks';
 import { adaptiveRateLimiter } from '@middleware/rateLimiter';
 
 const router = Router();
@@ -23,6 +25,8 @@ router.use('/clients', clientApiKeyRoutes); // Nested routes: /clients/:clientId
 router.use('/clients', ipWhitelistRoutes); // Nested routes: /clients/:clientId/ip-whitelist
 router.use('/client-test', clientTestRoutes); // Test endpoint for Client API Keys
 router.use('/audit-logs', auditLogRoutes); // Audit logs (admin only)
+router.use('/jobs', jobsRoutes); // Cron jobs management (admin only)
+router.use('/webhooks', webhooksRoutes); // Webhook management
 
 // API info endpoint
 router.get('/', (req, res) => {
@@ -37,6 +41,7 @@ router.get('/', (req, res) => {
             ipWhitelist: '/api/v1/clients/:clientId/ip-whitelist',
             clientTest: '/api/v1/client-test (requires Client API Key)',
             auditLogs: '/api/v1/audit-logs (admin only)',
+            jobs: '/api/v1/jobs (admin only)',
         },
     });
 });

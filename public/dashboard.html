@@ -420,6 +420,8 @@
             <button class="tab" onclick="switchTab('ipwhitelist')">🛡️ IP Whitelist</button>
             <button class="tab" onclick="switchTab('test')">🧪 Pruebas</button>
             <button class="tab" onclick="switchTab('audit')">📜 Audit Logs</button>
+            <button class="tab" onclick="switchTab('jobs')">⏰ Cron Jobs</button>
+            <button class="tab" onclick="switchTab('webhooks')">🔔 Webhooks</button>
         </div>
 
         <div id="users-content" class="tab-content">
@@ -704,6 +706,236 @@
 
             <div id="ipwhitelist-result"></div>
             <div id="ipwhitelist-container"></div>
+        </div>
+
+        <div id="jobs-content" class="tab-content">
+            <div class="config-section">
+                <h2>⏰ Cron Jobs - Sistema de Tareas Programadas</h2>
+                <p style="color: #a0a0a0; margin-bottom: 20px;">
+                    Gestiona y monitorea los trabajos programados del sistema: reset mensual de cuotas, limpieza de audit logs y más.
+                </p>
+
+                <!-- Estado del Scheduler -->
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3>📊 Estado del Scheduler</h3>
+                    <button class="btn" onclick="loadSchedulerStatus()">🔄 Actualizar Estado</button>
+                    <div id="scheduler-status-container" style="margin-top: 15px;"></div>
+                </div>
+
+                <!-- Monthly Reset Job -->
+                <div style="background: rgba(102, 126, 234, 0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #667eea;">
+                    <h3>🔄 Monthly Reset Job</h3>
+                    <p style="color: #a0a0a0; margin-bottom: 15px;">
+                        Resetea automáticamente las cuotas de uso de todos los clientes activos el primer día de cada mes.
+                    </p>
+
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                        <button class="btn" onclick="loadMonthlyResetInfo()">📋 Ver Configuración</button>
+                        <button class="btn btn-success" onclick="executeMonthlyReset()">▶️ Ejecutar Ahora</button>
+                        <button class="btn btn-secondary" onclick="showRestartJobConfig()">⚙️ Reiniciar Job</button>
+                    </div>
+
+                    <div id="monthly-reset-info" style="margin-top: 15px;"></div>
+                    <div id="monthly-reset-result" style="margin-top: 15px;"></div>
+
+                    <!-- Formulario de Restart (oculto por defecto) -->
+                    <div id="restart-job-form" style="display: none; margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px;">
+                        <h4 style="color: #667eea; margin-bottom: 15px;">⚙️ Configuración del Job</h4>
+                        
+                        <div class="input-group">
+                            <label for="jobCronExpression">Expresión Cron</label>
+                            <input type="text" id="jobCronExpression" placeholder="0 0 1 * *" value="0 0 1 * *">
+                            <small style="color: #888;">Ejemplo: "0 0 1 * *" = 1er día del mes a medianoche</small>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="jobTimezone">Timezone</label>
+                            <select id="jobTimezone" style="width: 100%; padding: 12px; background: #1a1a2e; border: 2px solid #2a2a4a; border-radius: 10px; color: #e0e0e0;">
+                                <option value="America/New_York">America/New_York (EST/EDT)</option>
+                                <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+                                <option value="America/Chicago">America/Chicago (CST/CDT)</option>
+                                <option value="America/Denver">America/Denver (MST/MDT)</option>
+                                <option value="Europe/London">Europe/London (GMT/BST)</option>
+                                <option value="Europe/Paris">Europe/Paris (CET/CEST)</option>
+                                <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                                <option value="UTC">UTC</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="jobRetryAttempts">Reintentos</label>
+                            <input type="number" id="jobRetryAttempts" min="1" max="10" value="3">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="jobRetryDelay">Delay entre Reintentos (ms)</label>
+                            <input type="number" id="jobRetryDelay" min="1000" max="60000" step="1000" value="5000">
+                        </div>
+
+                        <div class="input-group">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="jobEnabled" checked style="width: auto;">
+                                Habilitar Job
+                            </label>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button class="btn btn-success" onclick="restartMonthlyResetJob()">✓ Aplicar y Reiniciar</button>
+                            <button class="btn btn-secondary" onclick="hideRestartJobConfig()">✗ Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scheduler Control -->
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3>🎛️ Control del Scheduler</h3>
+                    <p style="color: #a0a0a0; margin-bottom: 15px;">
+                        Reinicia todo el sistema de jobs (útil después de cambiar configuración).
+                    </p>
+                    <button class="btn btn-error" onclick="restartScheduler()">🔄 Reiniciar Scheduler Completo</button>
+                    <div id="scheduler-restart-result" style="margin-top: 15px;"></div>
+                </div>
+
+                <!-- Notificaciones -->
+                <div style="background: rgba(240, 147, 251, 0.05); padding: 20px; border-radius: 10px; border: 1px solid #f093fb;">
+                    <h3>🔔 Notificaciones</h3>
+                    <p style="color: #a0a0a0; margin-bottom: 15px;">
+                        Prueba el sistema de notificaciones (Slack, Discord, etc.).
+                    </p>
+                    <button class="btn" onclick="sendTestNotification()" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        📧 Enviar Notificación de Prueba
+                    </button>
+                    <div id="notification-test-result" style="margin-top: 15px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="webhooks-content" class="tab-content">
+            <div class="config-section">
+                <h2>🔔 Webhooks - Notificaciones de Cuota de Uso</h2>
+                <p style="color: #a0a0a0; margin-bottom: 20px;">
+                    Configura webhooks para recibir notificaciones automáticas cuando tus clientes alcancen el 80% y 100% de su cuota mensual.
+                </p>
+
+                <!-- Crear Webhook -->
+                <div style="background: rgba(102, 126, 234, 0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #667eea;">
+                    <h3>➕ Crear Nuevo Webhook</h3>
+                    
+                    <div class="input-group">
+                        <label for="webhookClientId">Client ID</label>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="webhookClientId" style="flex: 1; padding: 12px; background: #1a1a2e; border: 2px solid #2a2a4a; border-radius: 10px; color: #e0e0e0;">
+                                <option value="">Selecciona un cliente...</option>
+                            </select>
+                            <button class="btn btn-secondary" onclick="loadClientsForWebhook()" style="white-space: nowrap;">🔄 Cargar Clientes</button>
+                        </div>
+                        <small style="color: #888;">Selecciona un cliente existente de la lista</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="webhookUrl">URL del Webhook</label>
+                        <input type="url" id="webhookUrl" placeholder="https://your-app.com/webhooks/usage">
+                        <small style="color: #888;">Debe ser HTTPS en producción</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Eventos</label>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="checkbox" id="event80" checked style="width: auto;">
+                                80% de cuota alcanzada
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="checkbox" id="event100" checked style="width: auto;">
+                                100% de cuota alcanzada
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="webhookTimeout">Timeout (ms)</label>
+                        <input type="number" id="webhookTimeout" value="5000" min="1000" max="30000">
+                    </div>
+
+                    <button class="btn btn-success" onclick="createWebhook()">✓ Crear Webhook</button>
+                    <div id="create-webhook-result" style="margin-top: 15px;"></div>
+                </div>
+
+                <!-- Listar Webhooks -->
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3>📋 Webhooks Configurados</h3>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <div class="input-group" style="flex: 1; margin: 0;">
+                            <input type="text" id="listWebhooksClientId" placeholder="Client ID (opcional para admin)">
+                        </div>
+                        <button class="btn" onclick="loadWebhooks()">🔄 Cargar Webhooks</button>
+                    </div>
+
+                    <div id="webhooks-list-container"></div>
+                </div>
+
+                <!-- Entregas de Webhooks -->
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3>📨 Entregas de Webhooks</h3>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                        <div class="input-group" style="flex: 1; margin: 0; min-width: 200px;">
+                            <input type="text" id="deliveriesClientId" placeholder="Client ID (opcional)">
+                        </div>
+                        <select id="deliveriesStatus" style="padding: 12px; background: #1a1a2e; border: 2px solid #2a2a4a; border-radius: 10px; color: #e0e0e0;">
+                            <option value="">Todos los estados</option>
+                            <option value="success">Éxito</option>
+                            <option value="failed">Fallido</option>
+                            <option value="pending">Pendiente</option>
+                            <option value="retrying">Reintentando</option>
+                        </select>
+                        <button class="btn" onclick="loadWebhookDeliveries()">📊 Ver Entregas</button>
+                    </div>
+                    <div id="deliveries-container"></div>
+                </div>
+
+                <!-- Simular Threshold (Solo Admin) -->
+                <div style="background: rgba(255, 193, 7, 0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ffc107;">
+                    <h3>⚡ Simular Webhook de Threshold (Testing)</h3>
+                    <p style="color: #a0a0a0; margin-bottom: 15px;">
+                        Simula que un cliente alcanzó el 80% o 100% de su cuota para probar los webhooks y ver entregas reales.
+                    </p>
+
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <div class="input-group" style="flex: 1; margin: 0; min-width: 200px;">
+                            <input type="text" id="simulateClientId" placeholder="Client ID (ID del cliente)">
+                        </div>
+                        <select id="simulateThreshold" style="padding: 12px; background: #1a1a2e; border: 2px solid #2a2a4a; border-radius: 10px; color: #e0e0e0;">
+                            <option value="80">80% de cuota</option>
+                            <option value="100">100% de cuota</option>
+                        </select>
+                        <button class="btn" onclick="simulateThresholdWebhook()" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); white-space: nowrap;">
+                            ⚡ Simular Threshold
+                        </button>
+                    </div>
+                    <div id="simulate-threshold-result" style="margin-top: 15px;"></div>
+                </div>
+
+                <!-- Test Webhook -->
+                <div style="background: rgba(240, 147, 251, 0.05); padding: 20px; border-radius: 10px; border: 1px solid #f093fb;">
+                    <h3>🧪 Probar Webhook</h3>
+                    <p style="color: #a0a0a0; margin-bottom: 15px;">
+                        Envía un webhook de prueba a cualquier URL para verificar tu configuración.
+                    </p>
+
+                    <div class="input-group">
+                        <label for="testWebhookUrl">URL de Prueba</label>
+                        <input type="url" id="testWebhookUrl" placeholder="https://webhook.site/your-unique-url">
+                        <small style="color: #888;">Usa <a href="https://webhook.site" target="_blank" style="color: #667eea;">webhook.site</a> para testing</small>
+                    </div>
+
+                    <button class="btn" onclick="sendTestWebhook()" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        📧 Enviar Webhook de Prueba
+                    </button>
+                    <div id="test-webhook-result" style="margin-top: 15px;"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -2178,6 +2410,807 @@
                 loadIPWhitelist();
             } catch (error) {
                 alert(`❌ Error al eliminar IP: ${error.message}`);
+            }
+        }
+
+        // ============================================================================
+        // CRON JOBS FUNCTIONS
+        // ============================================================================
+
+        /**
+         * Carga el estado del scheduler y todos los jobs
+         */
+        async function loadSchedulerStatus() {
+            showLoading('scheduler-status-container');
+
+            try {
+                const response = await makeRequest('/jobs/status');
+                const { scheduler, health } = response.data;
+
+                const container = document.getElementById('scheduler-status-container');
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        <div class="stat-card" style="background: ${health.healthy ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' : 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)'};">
+                            <h5>Estado del Scheduler</h5>
+                            <div class="stat-value">${scheduler.running ? '✅ Activo' : '❌ Inactivo'}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h5>Jobs Totales</h5>
+                            <div class="stat-value">${health.jobs.total}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h5>Jobs Habilitados</h5>
+                            <div class="stat-value">${health.jobs.enabled}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h5>Uptime</h5>
+                            <div class="stat-value">${health.scheduler.uptime ? formatDuration(health.scheduler.uptime) : 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    <h4 style="color: #667eea; margin-bottom: 15px;">📋 Jobs Configurados</h4>
+                    <div class="data-grid">
+                        ${scheduler.jobs.map(job => `
+                            <div class="data-card">
+                                <h4>${getJobIcon(job.name)} ${job.name}</h4>
+                                <div class="field">
+                                    <div class="field-label">Estado</div>
+                                    <div class="field-value">
+                                        <span class="badge ${job.enabled ? 'badge-success' : 'badge-danger'}">
+                                            ${job.enabled ? 'Habilitado' : 'Deshabilitado'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="field-label">Última Ejecución</div>
+                                    <div class="field-value">${job.lastExecution ? new Date(job.lastExecution).toLocaleString('es-ES') : 'Nunca'}</div>
+                                </div>
+                                <div class="field">
+                                    <div class="field-label">Próxima Ejecución</div>
+                                    <div class="field-value">${job.nextExecution || 'N/A'}</div>
+                                </div>
+                                <div class="field">
+                                    <div class="field-label">Configuración</div>
+                                    <div class="field-value">
+                                        ${Object.entries(job.config).map(([key, value]) => 
+                                            `<small><strong>${key}:</strong> ${value}</small>`
+                                        ).join('<br>')}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (error) {
+                showEmpty('scheduler-status-container', 'Error al cargar estado: ' + error.message);
+            }
+        }
+
+        /**
+         * Carga información del Monthly Reset Job
+         */
+        async function loadMonthlyResetInfo() {
+            showLoading('monthly-reset-info');
+
+            try {
+                const response = await makeRequest('/jobs/monthly-reset');
+                const { config, lastExecution } = response.data;
+
+                const container = document.getElementById('monthly-reset-info');
+                container.innerHTML = `
+                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px;">
+                        <h4 style="color: #667eea; margin-bottom: 15px;">⚙️ Configuración Actual</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                            <div>
+                                <strong>Estado:</strong><br>
+                                <span class="badge ${config.enabled ? 'badge-success' : 'badge-danger'}">
+                                    ${config.enabled ? 'Habilitado' : 'Deshabilitado'}
+                                </span>
+                            </div>
+                            <div>
+                                <strong>Expresión Cron:</strong><br>
+                                <code>${config.cronExpression}</code>
+                            </div>
+                            <div>
+                                <strong>Timezone:</strong><br>
+                                ${config.timezone}
+                            </div>
+                            <div>
+                                <strong>Reintentos:</strong><br>
+                                ${config.retryAttempts}
+                            </div>
+                            <div>
+                                <strong>Delay:</strong><br>
+                                ${config.retryDelayMs}ms
+                            </div>
+                        </div>
+
+                        ${lastExecution ? `
+                            <h4 style="color: #667eea; margin-top: 20px; margin-bottom: 15px;">📊 Última Ejecución</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                                <div>
+                                    <strong>Fecha:</strong><br>
+                                    ${new Date(lastExecution.timestamp).toLocaleString('es-ES')}
+                                </div>
+                                <div>
+                                    <strong>Resultado:</strong><br>
+                                    <span class="badge ${lastExecution.success ? 'badge-success' : 'badge-danger'}">
+                                        ${lastExecution.success ? 'Éxito' : 'Falló'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <strong>Clientes:</strong><br>
+                                    ${lastExecution.totalClients}
+                                </div>
+                                <div>
+                                    <strong>Éxitos:</strong><br>
+                                    <span style="color: #38ef7d;">${lastExecution.successCount}</span>
+                                </div>
+                                <div>
+                                    <strong>Fallos:</strong><br>
+                                    <span style="color: #f45c43;">${lastExecution.failureCount}</span>
+                                </div>
+                                <div>
+                                    <strong>Duración:</strong><br>
+                                    ${lastExecution.duration}ms
+                                </div>
+                            </div>
+
+                            ${lastExecution.errors && lastExecution.errors.length > 0 ? `
+                                <h4 style="color: #f45c43; margin-top: 20px; margin-bottom: 10px;">⚠️ Errores</h4>
+                                <div style="max-height: 200px; overflow-y: auto;">
+                                    ${lastExecution.errors.map(err => `
+                                        <div style="background: rgba(235, 51, 73, 0.1); padding: 8px; border-radius: 5px; margin-bottom: 5px;">
+                                            <strong>Cliente:</strong> ${err.clientId}<br>
+                                            <strong>Error:</strong> ${err.error}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        ` : '<p style="color: #888; margin-top: 15px;">No hay ejecuciones previas</p>'}
+                    </div>
+                `;
+            } catch (error) {
+                showEmpty('monthly-reset-info', 'Error al cargar información: ' + error.message);
+            }
+        }
+
+        /**
+         * Ejecuta el reset mensual manualmente
+         */
+        async function executeMonthlyReset() {
+            if (!confirm('¿Estás seguro de que quieres ejecutar el reset mensual ahora? Esto reseteará las cuotas de TODOS los clientes activos.')) {
+                return;
+            }
+
+            showLoading('monthly-reset-result');
+
+            try {
+                const response = await makeRequest('/jobs/monthly-reset/execute', {
+                    method: 'POST'
+                });
+
+                const result = response.data;
+
+                const container = document.getElementById('monthly-reset-result');
+                container.innerHTML = `
+                    <div class="alert ${result.success ? 'alert-success' : 'alert-error'}">
+                        <h4>${result.success ? '✅ Reset Completado' : '❌ Reset con Errores'}</h4>
+                        <p><strong>Clientes procesados:</strong> ${result.totalClients}</p>
+                        <p><strong>Éxitos:</strong> ${result.successCount} | <strong>Fallos:</strong> ${result.failureCount}</p>
+                        <p><strong>Duración:</strong> ${result.duration}ms</p>
+                        ${result.errors && result.errors.length > 0 ? `
+                            <details style="margin-top: 10px;">
+                                <summary style="cursor: pointer;">Ver errores (${result.errors.length})</summary>
+                                <div style="margin-top: 10px; max-height: 200px; overflow-y: auto;">
+                                    ${result.errors.map(err => `
+                                        <div style="background: rgba(0,0,0,0.2); padding: 5px; margin: 5px 0; border-radius: 5px;">
+                                            <strong>${err.clientId}:</strong> ${err.error}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </details>
+                        ` : ''}
+                    </div>
+                `;
+
+                // Recargar info
+                loadMonthlyResetInfo();
+            } catch (error) {
+                const container = document.getElementById('monthly-reset-result');
+                container.innerHTML = `
+                    <div class="alert alert-error">
+                        <h4>❌ Error al Ejecutar Reset</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Muestra el formulario de configuración del job
+         */
+        function showRestartJobConfig() {
+            // Cargar configuración actual primero
+            makeRequest('/jobs/monthly-reset').then(response => {
+                const { config } = response.data;
+                
+                document.getElementById('jobCronExpression').value = config.cronExpression;
+                document.getElementById('jobTimezone').value = config.timezone;
+                document.getElementById('jobRetryAttempts').value = config.retryAttempts;
+                document.getElementById('jobRetryDelay').value = config.retryDelayMs;
+                document.getElementById('jobEnabled').checked = config.enabled;
+                
+                document.getElementById('restart-job-form').style.display = 'block';
+            });
+        }
+
+        /**
+         * Oculta el formulario de configuración
+         */
+        function hideRestartJobConfig() {
+            document.getElementById('restart-job-form').style.display = 'none';
+        }
+
+        /**
+         * Reinicia el job con nueva configuración
+         */
+        async function restartMonthlyResetJob() {
+            const newConfig = {
+                cronExpression: document.getElementById('jobCronExpression').value,
+                timezone: document.getElementById('jobTimezone').value,
+                retryAttempts: parseInt(document.getElementById('jobRetryAttempts').value),
+                retryDelayMs: parseInt(document.getElementById('jobRetryDelay').value),
+                enabled: document.getElementById('jobEnabled').checked
+            };
+
+            try {
+                await makeRequest('/jobs/monthly-reset/restart', {
+                    method: 'POST',
+                    body: JSON.stringify(newConfig)
+                });
+
+                alert('✅ Job reiniciado exitosamente con la nueva configuración');
+                hideRestartJobConfig();
+                loadMonthlyResetInfo();
+                loadSchedulerStatus();
+            } catch (error) {
+                alert(`❌ Error al reiniciar job: ${error.message}`);
+            }
+        }
+
+        /**
+         * Reinicia todo el scheduler
+         */
+        async function restartScheduler() {
+            if (!confirm('¿Estás seguro de que quieres reiniciar todo el scheduler? Esto reiniciará TODOS los jobs.')) {
+                return;
+            }
+
+            showLoading('scheduler-restart-result');
+
+            try {
+                await makeRequest('/jobs/scheduler/restart', {
+                    method: 'POST'
+                });
+
+                const container = document.getElementById('scheduler-restart-result');
+                container.innerHTML = `
+                    <div class="alert alert-success">
+                        <h4>✅ Scheduler Reiniciado</h4>
+                        <p>Todos los jobs han sido reiniciados exitosamente.</p>
+                    </div>
+                `;
+
+                // Recargar estado
+                setTimeout(() => {
+                    loadSchedulerStatus();
+                }, 1000);
+            } catch (error) {
+                const container = document.getElementById('scheduler-restart-result');
+                container.innerHTML = `
+                    <div class="alert alert-error">
+                        <h4>❌ Error al Reiniciar Scheduler</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Envía una notificación de prueba
+         */
+        async function sendTestNotification() {
+            showLoading('notification-test-result');
+
+            try {
+                await makeRequest('/jobs/notifications/test', {
+                    method: 'POST'
+                });
+
+                const container = document.getElementById('notification-test-result');
+                container.innerHTML = `
+                    <div class="alert alert-success">
+                        <h4>✅ Notificación Enviada</h4>
+                        <p>Se ha enviado una notificación de prueba. Revisa tu canal de Slack/Discord.</p>
+                        <p style="margin-top: 10px;"><small>Si no recibes la notificación, verifica:</small></p>
+                        <ul style="margin-left: 20px; margin-top: 5px;">
+                            <li><small>Variable JOB_NOTIFICATIONS_ENABLED=true</small></li>
+                            <li><small>URL del webhook configurada correctamente</small></li>
+                            <li><small>Logs del servidor para errores</small></li>
+                        </ul>
+                    </div>
+                `;
+            } catch (error) {
+                const container = document.getElementById('notification-test-result');
+                container.innerHTML = `
+                    <div class="alert alert-error">
+                        <h4>❌ Error al Enviar Notificación</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================================================
+        // HELPER FUNCTIONS
+        // ============================================================================
+
+        /**
+         * Formatea duración en ms a formato legible
+         */
+        function formatDuration(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            if (days > 0) return `${days}d ${hours % 24}h`;
+            if (hours > 0) return `${hours}h ${minutes % 60}m`;
+            if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+            return `${seconds}s`;
+        }
+
+        /**
+         * Obtiene el icono apropiado para cada job
+         */
+        function getJobIcon(jobName) {
+            const icons = {
+                'monthly-reset': '🔄',
+                'audit-cleanup': '🗑️',
+                'default': '⏰'
+            };
+            return icons[jobName] || icons.default;
+        }
+
+        // ============================================================================
+        // WEBHOOKS FUNCTIONS
+        // ============================================================================
+
+        /**
+         * Carga los clientes disponibles en el selector
+         */
+        async function loadClientsForWebhook() {
+            try {
+                const response = await makeRequest('/clients?limit=100');
+                const clients = response.data.clients;
+
+                const select = document.getElementById('webhookClientId');
+                select.innerHTML = '<option value="">Selecciona un cliente...</option>';
+
+                clients.forEach(client => {
+                    const option = document.createElement('option');
+                    option.value = client.id;
+                    option.textContent = `${client.name} (${client.id})`;
+                    select.appendChild(option);
+                });
+
+                alert(`✅ ${clients.length} clientes cargados`);
+            } catch (error) {
+                alert(`❌ Error al cargar clientes: ${error.message}`);
+            }
+        }
+
+        /**
+         * Crea un nuevo webhook
+         */
+        async function createWebhook() {
+            const clientId = document.getElementById('webhookClientId').value;
+            const url = document.getElementById('webhookUrl').value;
+            const timeout_ms = parseInt(document.getElementById('webhookTimeout').value);
+
+            if (!clientId || !url) {
+                alert('Por favor completa Client ID y URL');
+                return;
+            }
+
+            // Construir array de eventos
+            const events = [];
+            if (document.getElementById('event80').checked) {
+                events.push('usage.threshold.80');
+            }
+            if (document.getElementById('event100').checked) {
+                events.push('usage.threshold.100');
+            }
+
+            if (events.length === 0) {
+                alert('Selecciona al menos un evento');
+                return;
+            }
+
+            showLoading('create-webhook-result');
+
+            try {
+                const response = await makeRequest('/webhooks', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        client_id: clientId,
+                        url,
+                        events,
+                        timeout_ms
+                    })
+                });
+
+                const container = document.getElementById('create-webhook-result');
+                container.innerHTML = `
+                    <div class="alert alert-success">
+                        <h4>✅ Webhook Creado Exitosamente</h4>
+                        <p><strong>ID:</strong> ${response.data.webhook.id}</p>
+                        <p><strong>URL:</strong> ${response.data.webhook.url}</p>
+                        <p><strong>Eventos:</strong> ${response.data.webhook.events.join(', ')}</p>
+                        <p style="color: #f5576c; margin-top: 10px;">
+                            ⚠️ <strong>Importante:</strong> El secret se genera automáticamente. 
+                            Para obtenerlo, usa el endpoint GET /webhooks/${response.data.webhook.id}
+                        </p>
+                    </div>
+                `;
+
+                // Copiar client_id al campo de lista antes de limpiar
+                document.getElementById('listWebhooksClientId').value = clientId;
+
+                // Limpiar formulario
+                document.getElementById('webhookClientId').value = '';
+                document.getElementById('webhookUrl').value = '';
+
+                // Recargar lista con el client_id correcto
+                loadWebhooks();
+            } catch (error) {
+                const container = document.getElementById('create-webhook-result');
+                container.innerHTML = `
+                    <div class="alert alert-error">
+                        <h4>❌ Error al Crear Webhook</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Carga la lista de webhooks
+         */
+        async function loadWebhooks() {
+            const clientId = document.getElementById('listWebhooksClientId').value;
+            showLoading('webhooks-list-container');
+
+            try {
+                const url = clientId ? `/webhooks?client_id=${clientId}` : '/webhooks';
+                const response = await makeRequest(url);
+
+                const webhooks = response.data.webhooks;
+
+                if (webhooks.length === 0) {
+                    // Mostrar mensaje del backend si existe, sino mensaje por defecto
+                    const message = response.data.message || 'No hay webhooks configurados';
+                    showEmpty('webhooks-list-container', message);
+                    return;
+                }
+
+                const container = document.getElementById('webhooks-list-container');
+                container.innerHTML = `
+                    <div class="data-grid">
+                        ${webhooks.map(webhook => `
+                            <div class="data-card">
+                                <h4>🔔 ${webhook.url}</h4>
+                                <div class="field">
+                                    <div class="field-label">ID</div>
+                                    <div class="field-value"><code>${webhook.id}</code></div>
+                                </div>
+                                <div class="field">
+                                    <div class="field-label">Client ID</div>
+                                    <div class="field-value">${webhook.client_id}</div>
+                                </div>
+                                <div class="field">
+                                    <div class="field-label">Estado</div>
+                                    <div class="field-value">
+                                        <span class="badge ${webhook.enabled ? 'badge-success' : 'badge-danger'}">
+                                            ${webhook.enabled ? 'Habilitado' : 'Deshabilitado'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="field-label">Eventos</div>
+                                    <div class="field-value">
+                                        ${webhook.events.map(e => `<span class="badge">${e}</span>`).join(' ')}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="field-label">Timeout</div>
+                                    <div class="field-value">${webhook.timeout_ms}ms</div>
+                                </div>
+                                <div class="field">
+                                    <div class="field-label">Creado</div>
+                                    <div class="field-value">${new Date(webhook.created_at).toLocaleString('es-ES')}</div>
+                                </div>
+                                <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                                    <button class="btn btn-secondary" onclick="toggleWebhook('${webhook.id}', ${!webhook.enabled})">
+                                        ${webhook.enabled ? '⏸️ Deshabilitar' : '▶️ Habilitar'}
+                                    </button>
+                                    <button class="btn" onclick="regenerateWebhookSecret('${webhook.id}')">
+                                        🔄 Regenerar Secret
+                                    </button>
+                                    <button class="btn btn-error" onclick="deleteWebhook('${webhook.id}')">
+                                        🗑️ Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (error) {
+                showEmpty('webhooks-list-container', 'Error al cargar webhooks: ' + error.message);
+            }
+        }
+
+        /**
+         * Habilita/deshabilita un webhook
+         */
+        async function toggleWebhook(webhookId, enabled) {
+            try {
+                await makeRequest(`/webhooks/${webhookId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ enabled })
+                });
+
+                alert(`✅ Webhook ${enabled ? 'habilitado' : 'deshabilitado'} exitosamente`);
+                loadWebhooks();
+            } catch (error) {
+                alert(`❌ Error: ${error.message}`);
+            }
+        }
+
+        /**
+         * Regenera el secret de un webhook
+         */
+        async function regenerateWebhookSecret(webhookId) {
+            if (!confirm('¿Estás seguro? El secret anterior dejará de funcionar.')) {
+                return;
+            }
+
+            try {
+                const response = await makeRequest(`/webhooks/${webhookId}/regenerate-secret`, {
+                    method: 'POST'
+                });
+
+                alert(`✅ Secret regenerado:\n\n${response.data.secret}\n\n⚠️ Guárdalo ahora, no se mostrará de nuevo.`);
+            } catch (error) {
+                alert(`❌ Error: ${error.message}`);
+            }
+        }
+
+        /**
+         * Elimina un webhook
+         */
+        async function deleteWebhook(webhookId) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este webhook?')) {
+                return;
+            }
+
+            try {
+                await makeRequest(`/webhooks/${webhookId}`, {
+                    method: 'DELETE'
+                });
+
+                alert('✅ Webhook eliminado exitosamente');
+                loadWebhooks();
+            } catch (error) {
+                alert(`❌ Error: ${error.message}`);
+            }
+        }
+
+        /**
+         * Carga las entregas de webhooks
+         */
+        async function loadWebhookDeliveries() {
+            const clientId = document.getElementById('deliveriesClientId').value;
+            const status = document.getElementById('deliveriesStatus').value;
+
+            showLoading('deliveries-container');
+
+            try {
+                let url = '/webhooks/deliveries/list?limit=50';
+                if (clientId) url += `&client_id=${clientId}`;
+                if (status) url += `&status=${status}`;
+
+                const response = await makeRequest(url);
+                const deliveries = response.data.deliveries;
+
+                if (deliveries.length === 0) {
+                    // Mostrar mensaje del backend si existe, sino mensaje por defecto
+                    const message = response.data.message || 'No hay entregas de webhooks';
+                    showEmpty('deliveries-container', message);
+                    return;
+                }
+
+                const container = document.getElementById('deliveries-container');
+                container.innerHTML = `
+                    <div class="data-grid">
+                        ${deliveries.map(delivery => `
+                            <div class="data-card">
+                                <h4>📨 ${delivery.event_type}</h4>
+                                <div class="field">
+                                    <div class="field-label">Estado</div>
+                                    <div class="field-value">
+                                        <span class="badge ${
+                                            delivery.status === 'success' ? 'badge-success' :
+                                            delivery.status === 'failed' ? 'badge-danger' :
+                                            delivery.status === 'retrying' ? 'badge-warning' :
+                                            ''
+                                        }">
+                                            ${delivery.status.toUpperCase()}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="field-label">Client ID</div>
+                                    <div class="field-value">${delivery.client_id}</div>
+                                </div>
+                                <div class="field">
+                                    <div class="field-label">Intentos</div>
+                                    <div class="field-value">${delivery.attempts} / ${delivery.max_attempts}</div>
+                                </div>
+                                ${delivery.response_status ? `
+                                    <div class="field">
+                                        <div class="field-label">HTTP Status</div>
+                                        <div class="field-value">${delivery.response_status}</div>
+                                    </div>
+                                ` : ''}
+                                ${delivery.duration_ms ? `
+                                    <div class="field">
+                                        <div class="field-label">Duración</div>
+                                        <div class="field-value">${delivery.duration_ms}ms</div>
+                                    </div>
+                                ` : ''}
+                                ${delivery.error_message ? `
+                                    <div class="field">
+                                        <div class="field-label">Error</div>
+                                        <div class="field-value" style="color: #f45c43;">${delivery.error_message}</div>
+                                    </div>
+                                ` : ''}
+                                <div class="field">
+                                    <div class="field-label">Creado</div>
+                                    <div class="field-value">${new Date(delivery.created_at).toLocaleString('es-ES')}</div>
+                                </div>
+                                ${delivery.delivered_at ? `
+                                    <div class="field">
+                                        <div class="field-label">Entregado</div>
+                                        <div class="field-value">${new Date(delivery.delivered_at).toLocaleString('es-ES')}</div>
+                                    </div>
+                                ` : ''}
+                                <details style="margin-top: 10px;">
+                                    <summary style="cursor: pointer; color: #667eea;">Ver Payload</summary>
+                                    <pre style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; margin-top: 10px; overflow-x: auto;">${JSON.stringify(delivery.payload, null, 2)}</pre>
+                                </details>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (error) {
+                showEmpty('deliveries-container', 'Error al cargar entregas: ' + error.message);
+            }
+        }
+
+        /**
+         * Envía un webhook de prueba
+         */
+        async function sendTestWebhook() {
+            const url = document.getElementById('testWebhookUrl').value;
+
+            if (!url) {
+                alert('Por favor ingresa una URL de prueba');
+                return;
+            }
+
+            showLoading('test-webhook-result');
+
+            try {
+                const response = await makeRequest('/webhooks/test', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        url,
+                        payload: {
+                            test: true,
+                            message: 'This is a test webhook from the dashboard',
+                            timestamp: new Date().toISOString()
+                        }
+                    })
+                });
+
+                const container = document.getElementById('test-webhook-result');
+                container.innerHTML = `
+                    <div class="alert alert-success">
+                        <h4>✅ Webhook de Prueba Enviado</h4>
+                        <p><strong>Status Code:</strong> ${response.data.status_code}</p>
+                        <p><strong>Test Secret:</strong> <code>${response.data.test_secret}</code></p>
+                        <details style="margin-top: 10px;">
+                            <summary style="cursor: pointer;">Ver Headers Enviados</summary>
+                            <pre style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; margin-top: 10px;">${JSON.stringify(response.data.headers_sent, null, 2)}</pre>
+                        </details>
+                        ${response.data.response_body ? `
+                            <details style="margin-top: 10px;">
+                                <summary style="cursor: pointer;">Ver Respuesta</summary>
+                                <pre style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; margin-top: 10px;">${response.data.response_body}</pre>
+                            </details>
+                        ` : ''}
+                    </div>
+                `;
+            } catch (error) {
+                const container = document.getElementById('test-webhook-result');
+                container.innerHTML = `
+                    <div class="alert alert-error">
+                        <h4>❌ Error al Enviar Webhook de Prueba</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Simula un webhook de threshold
+         */
+        async function simulateThresholdWebhook() {
+            const clientId = document.getElementById('simulateClientId').value || document.getElementById('deliveriesClientId').value;
+            const threshold = parseInt(document.getElementById('simulateThreshold').value);
+
+            if (!clientId) {
+                alert('Por favor ingresa un Client ID');
+                return;
+            }
+
+            showLoading('simulate-threshold-result');
+
+            try {
+                const response = await makeRequest('/webhooks/simulate-threshold', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        client_id: clientId,
+                        threshold
+                    })
+                });
+
+                const container = document.getElementById('simulate-threshold-result');
+                container.innerHTML = `
+                    <div class="alert alert-success">
+                        <h4>✅ Webhook de Threshold Simulado</h4>
+                        <p>${response.message}</p>
+                        <p style="margin-top: 10px;">
+                            <strong>Tip:</strong> Ahora puedes hacer click en "📊 Ver Entregas" para ver el registro de entrega.
+                        </p>
+                    </div>
+                `;
+
+                // Auto-recargar entregas después de 1 segundo
+                setTimeout(() => {
+                    document.getElementById('deliveriesClientId').value = clientId;
+                    loadWebhookDeliveries();
+                }, 1000);
+            } catch (error) {
+                const container = document.getElementById('simulate-threshold-result');
+                container.innerHTML = `
+                    <div class="alert alert-error">
+                        <h4>❌ Error al Simular Threshold</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
             }
         }
     </script>

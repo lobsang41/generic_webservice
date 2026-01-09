@@ -122,13 +122,22 @@ class APIGateway {
                 logger.warn('Starting without message queue');
             });
 
-            // Initialize audit cleanup job
+            // Initialize Job Scheduler (cron jobs)
             try {
-                const { startAuditCleanupJob } = await import('@shared/jobs/auditCleanupJob');
-                startAuditCleanupJob();
-                logger.info('✅ Audit cleanup job initialized');
+                const { startScheduler } = await import('@shared/jobs/scheduler');
+                startScheduler();
+                logger.info('✅ Job Scheduler initialized (monthly reset, audit cleanup)');
             } catch (error) {
-                logger.warn('Failed to initialize audit cleanup job', error);
+                logger.warn('Failed to initialize Job Scheduler', error);
+            }
+
+            // Initialize Webhook Queue
+            try {
+                const { webhookQueue } = await import('@shared/webhooks/webhookQueue');
+                webhookQueue.start();
+                logger.info('✅ Webhook Queue initialized');
+            } catch (error) {
+                logger.warn('Failed to initialize Webhook Queue', error);
             }
 
             // Start server
@@ -150,6 +159,23 @@ class APIGateway {
     private setupGracefulShutdown() {
         const shutdown = async (signal: string) => {
             logger.info(`${signal} received, starting graceful shutdown...`);
+
+            // Stop Job Scheduler
+            try {
+                const { gracefulShutdown: shutdownScheduler } = await import('@shared/jobs/scheduler');
+                shutdownScheduler();
+            } catch (error) {
+                logger.warn('Failed to shutdown Job Scheduler gracefully', error);
+            }
+
+            // Stop Webhook Queue
+            try {
+                const { webhookQueue } = await import('@shared/webhooks/webhookQueue');
+                webhookQueue.stop();
+                logger.info('✅ Webhook Queue stopped');
+            } catch (error) {
+                logger.warn('Failed to stop Webhook Queue gracefully', error);
+            }
 
             // Close server
             if (this.server && typeof (this.server as { close: (cb: () => void) => void }).close === 'function') {

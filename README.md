@@ -14,6 +14,8 @@
 - 🛡️ **Security** - Rate limiting, encryption, helmet, CORS
 - 🐳 **Containerized** - Docker ready
 - 📝 **TypeScript** - Full type safety
+- ⏰ **Cron Jobs** - Automated monthly reset and audit cleanup with notifications
+- 🔔 **Webhooks** - Automated notifications for usage thresholds with HMAC signatures
 
 ### Commented Services (Ready to Activate)
 - 🗄️ **PostgreSQL** - System/admin data (commented, ready to activate)
@@ -186,6 +188,29 @@ curl -H "X-API-Key: mk_YOUR_CLIENT_API_KEY" \
 - `POST /api/v1/audit-logs/retention/config` - Update retention settings (days, hour, enabled)
 - `POST /api/v1/audit-logs/retention/cleanup` - Manual trigger for old logs cleanup
 
+#### ⏰ Cron Jobs Management (Admin Only)
+- `GET /api/v1/jobs/status` - Get scheduler status and all jobs info
+- `GET /api/v1/jobs/monthly-reset` - Get monthly reset job configuration and last execution
+- `POST /api/v1/jobs/monthly-reset/execute` - Manually trigger monthly reset
+- `POST /api/v1/jobs/monthly-reset/restart` - Restart job with new configuration
+- `POST /api/v1/jobs/scheduler/restart` - Restart entire scheduler
+- `POST /api/v1/jobs/notifications/test` - Send test notification
+
+See [Cron Jobs Documentation](docs/CRON_JOBS.md) for detailed information.
+
+#### 🔔 Webhooks (Client & Admin)
+- `POST /api/v1/webhooks` - Create webhook configuration
+- `GET /api/v1/webhooks` - List webhooks for authenticated client
+- `GET /api/v1/webhooks/:id` - Get webhook configuration
+- `PATCH /api/v1/webhooks/:id` - Update webhook configuration
+- `DELETE /api/v1/webhooks/:id` - Delete webhook configuration
+- `POST /api/v1/webhooks/:id/regenerate-secret` - Regenerate webhook secret
+- `GET /api/v1/webhooks/deliveries/list` - List webhook deliveries
+- `GET /api/v1/webhooks/deliveries/:id` - Get delivery details
+- `POST /api/v1/webhooks/test` - Send test webhook
+
+See [Webhooks Documentation](docs/WEBHOOKS.md) for detailed information.
+
 #### Client API Key Test Endpoint
 ```bash
 curl -H "X-API-Key: mk_YOUR_CLIENT_KEY" \
@@ -351,6 +376,13 @@ ENCRYPTION_KEY=your-32-char-key-here
 AUDIT_LOG_RETENTION_DAYS=180
 AUDIT_CLEANUP_ENABLED=true
 AUDIT_CLEANUP_HOUR=2
+
+# Cron Jobs
+MONTHLY_RESET_ENABLED=true
+MONTHLY_RESET_CRON=0 0 1 * *
+MONTHLY_RESET_TIMEZONE=America/New_York
+JOB_NOTIFICATIONS_ENABLED=true
+JOB_NOTIFICATION_WEBHOOK_URL=https://hooks.slack.com/...
 ```
 
 ## Scripts

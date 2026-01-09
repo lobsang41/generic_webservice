@@ -4,6 +4,7 @@ import {
     slugSchema,
     emailSchema,
     uuidSchema,
+    nanoidSchema,
     paginationQuerySchema,
 } from './common.schemas';
 
@@ -15,7 +16,7 @@ import {
 export const createClientSchema = z.object({
     name: nameSchema,
     slug: slugSchema,
-    tier_id: uuidSchema,
+    tier_id: uuidSchema, // Los tier IDs son UUIDs
     contact_email: emailSchema,
     contact_name: nameSchema,
 });
@@ -23,7 +24,7 @@ export const createClientSchema = z.object({
 // Update client schema
 export const updateClientSchema = z.object({
     name: nameSchema.optional(),
-    tier_id: uuidSchema.optional(),
+    tier_id: uuidSchema.optional(), // Los tier IDs son UUIDs
     contact_email: emailSchema.optional(),
     contact_name: nameSchema.optional(),
     is_active: z.boolean().optional(),
@@ -36,7 +37,7 @@ export const updateClientSchema = z.object({
 
 // Get client params schema
 export const getClientParamsSchema = z.object({
-    id: uuidSchema,
+    id: nanoidSchema, // Los client IDs son nanoids
 });
 
 // List clients query schema
@@ -47,12 +48,12 @@ export const listClientsQuerySchema = paginationQuerySchema.extend({
 
 // Get client usage params schema
 export const getClientUsageParamsSchema = z.object({
-    id: uuidSchema,
+    id: nanoidSchema, // Los client IDs son nanoids
 });
 
 // Reset usage params schema
 export const resetUsageParamsSchema = z.object({
-    id: uuidSchema,
+    id: nanoidSchema, // Los client IDs son nanoids
 });
 
 // Type exports

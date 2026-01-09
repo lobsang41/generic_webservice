@@ -16,6 +16,13 @@ export const uuidSchema = z
     .string()
     .uuid('Invalid UUID format');
 
+// NanoID validation (usado para IDs de clientes, API keys, etc.)
+export const nanoidSchema = z
+    .string()
+    .min(1, 'ID is required')
+    .max(50, 'ID is too long')
+    .regex(/^[A-Za-z0-9_-]+$/, 'Invalid ID format');
+
 // Password validation
 export const passwordSchema = z
     .string()
